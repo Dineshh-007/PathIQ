@@ -5,4 +5,4 @@ echo "⏳ Running Prisma migrations..."
 npx prisma migrate deploy
 
 echo "🚀 Starting server..."
-exec node dist/index.js
+exec node dist/apps/server/src/index.js
