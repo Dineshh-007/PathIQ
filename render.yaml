@@ -3,7 +3,7 @@ services:
     name: pathiq-api
     env: node
     plan: free
-    buildCommand: "npm install --include=dev && npx turbo run build --filter=@peerprep/server"
+    buildCommand: "npm install --include=dev && npx prisma generate --schema=apps/server/prisma/schema.prisma && npx turbo run build --filter=@peerprep/server"
     startCommand: "cd apps/server && npx prisma migrate deploy && npm run start"
     healthCheckPath: /health
     envVars:
