@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: "npm install --include=dev && npx prisma generate --schema=apps/server/prisma/schema.prisma && npx turbo run build --filter=@peerprep/server"
-    startCommand: "cd apps/server && npx prisma migrate deploy && npm run start"
+    startCommand: "cd apps/server && npm run start"
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
