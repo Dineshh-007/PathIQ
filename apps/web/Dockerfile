@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/package.json
 COPY apps/web/package.json ./apps/web/package.json
+COPY apps/server/package.json ./apps/server/package.json
 
 RUN npm install --workspaces --include-workspace-root
 
