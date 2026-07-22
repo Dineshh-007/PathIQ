@@ -31,6 +31,9 @@ RUN npx prisma generate
 # Compile TypeScript → dist/
 RUN npm run build
 
+# Ensure node_modules exists so COPY doesn't fail if everything was hoisted
+RUN mkdir -p /app/apps/server/node_modules
+
 # ─── Stage 4: Production image (minimal) ──────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
