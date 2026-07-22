@@ -61,6 +61,21 @@ async function bootstrap() {
       });
     }
   });
+
+  // ─── Diagnostic DB Seed Route ──────────────────────────────────────────────
+  app.get('/api/system/seed-db', async (req, reply) => {
+    try {
+      const output = execSync('npx ts-node prisma/seed.ts', { encoding: 'utf-8' });
+      return { status: 'success', output };
+    } catch (err: any) {
+      reply.status(500).send({
+        status: 'error',
+        message: err.message,
+        stdout: err.stdout?.toString(),
+        stderr: err.stderr?.toString()
+      });
+    }
+  });
   // ─── Socket.io ─────────────────────────────────────────────────────────────
   const httpServer = app.server;
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {

@@ -13,7 +13,7 @@ export async function fetchCandidateQuestions(
   // Load IDs of questions already used for this user in this room
   const usedSessions = await prisma.interviewSession.findMany({
     where: { roomId, intervieweeId: userId },
-    include: { sessionQuestions: { select: { questionId: true } } },
+    include: { sessionQuestions: { select: { questionId: true }, where: { isSelected: true } } },
   });
 
   const usedIds = usedSessions

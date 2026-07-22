@@ -121,29 +121,30 @@ export function registerInterviewSocket(io: IoServer) {
 
       const session = await prisma.interviewSession.findFirst({
         where: { roomId: room.id, phase: 'voting' },
-        include: {
-          sessionQuestions: { where: { isVotingQuestion: true } },
-        },
       });
       if (!session) return;
+
+      const sessionQuestions = await prisma.sessionQuestion.findMany({
+        where: { sessionId: session.id, isVotingQuestion: true, questionNumber: session.currentQuestionNumber }
+      });
 
       const socketUserId = getSocketUserId(socket);
       const isInterviewee = session.intervieweeId === socketUserId;
       if (isInterviewee) return; // interviewee cannot vote
 
       // Check if already voted
-      const votingQIds = session.sessionQuestions.map((sq: { questionId: string }) => sq.questionId);
+      const votingQIds = sessionQuestions.map((sq: { questionId: string }) => sq.questionId);
       if (!votingQIds.includes(questionId)) return; // not a valid candidate
 
       // Upsert vote (one per user per session question group)
       const existingVote = await prisma.questionVote.findFirst({
         where: {
-          sessionQuestionId: { in: session.sessionQuestions.map((sq: { id: string }) => sq.id) },
+          sessionQuestionId: { in: sessionQuestions.map((sq: { id: string }) => sq.id) },
           voterId: socketUserId,
         },
       });
 
-      const targetSQ = session.sessionQuestions.find((sq: { id: string; questionId: string }) => sq.questionId === questionId);
+      const targetSQ = sessionQuestions.find((sq: { id: string; questionId: string }) => sq.questionId === questionId);
       if (!targetSQ) return;
 
       if (existingVote) {
@@ -160,7 +161,7 @@ export function registerInterviewSocket(io: IoServer) {
       // Count total unique votes
       const votes = await prisma.questionVote.groupBy({
         by: ['sessionQuestionId'],
-        where: { sessionQuestionId: { in: session.sessionQuestions.map((sq: { id: string }) => sq.id) } },
+        where: { sessionQuestionId: { in: sessionQuestions.map((sq: { id: string }) => sq.id) } },
         _count: true,
       });
 
