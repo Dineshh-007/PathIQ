@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum InterviewRole {
+  software_engineer
+  ai_engineer
+  data_analyst
+  web_developer
+  cybersecurity_engineer
+  devops_engineer
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum RoomStatus {
+  waiting
+  active
+  completed
+}
+
+enum SessionPhase {
+  role_selection
+  voting
+  answering
+  evaluating
+  reveal
+  completed
+}
+
+enum AwardCategory {
+  best_technical
+  best_communicator
+  best_critical_thinker
+  best_interviewer
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  totalSessions Int     @default(0) @map("total_sessions")
+  averageScore Float    @default(0) @map("average_score")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  hostedRooms         Room[]               @relation("HostedRooms")
+  roomParticipants    RoomParticipant[]
+  evaluationsGiven    Evaluation[]         @relation("EvaluatorEvaluations")
+  awardVotesGiven     AwardVote[]          @relation("VoterAwardVotes")
+  awardVotesReceived  AwardVote[]          @relation("NomineeAwardVotes")
+  aiAnalyses          AiAnalysis[]
+  sessionResults      SessionResult[]
+  interviewSessions   InterviewSession[]   @relation("IntervieweeSessions")
+  submittedQuestions  Question[]
+
+  @@map("users")
+}
+
+model Room {
+  id              String     @id @default(uuid())
+  roomCode        String     @unique @map("room_code")
+  host            User       @relation("HostedRooms", fields: [hostId], references: [id])
+  hostId          String     @map("host_id")
+  status          RoomStatus @default(waiting)
+  maxParticipants Int        @default(5) @map("max_participants")
+  answerTimeSecs  Int        @default(180) @map("answer_time_secs")
+  votingTimeSecs  Int        @default(60) @map("voting_time_secs")
+  questionsPerTurn Int       @default(2) @map("questions_per_turn")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  startedAt       DateTime?  @map("started_at")
+  endedAt         DateTime?  @map("ended_at")
+
+  // Relations
+  participants      RoomParticipant[]
+  interviewSessions InterviewSession[]
+  awardVotes        AwardVote[]
+  sessionResults    SessionResult[]
+
+  @@map("rooms")
+}
+
+model RoomParticipant {
+  id          String   @id @default(uuid())
+  room        Room     @relation(fields: [roomId], references: [id])
+  roomId      String   @map("room_id")
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @map("user_id")
+  seatOrder   Int      @map("seat_order")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  isConnected Boolean  @default(true) @map("is_connected")
+  isReady     Boolean  @default(false) @map("is_ready")
+  socketId    String?  @map("socket_id")
+
+  @@unique([roomId, userId])
+  @@unique([roomId, seatOrder])
+  @@map("room_participants")
+}
+
+model Question {
+  id          String        @id @default(uuid())
+  text        String
+  role        InterviewRole
+  difficulty  Difficulty    @default(medium)
+  approved    Boolean       @default(true)
+  usageCount  Int           @default(0) @map("usage_count")
+  submittedBy User?         @relation(fields: [submittedById], references: [id])
+  submittedById String?     @map("submitted_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  sessionQuestions SessionQuestion[]
+
+  @@map("questions")
+}
+
+model InterviewSession {
+  id             String       @id @default(uuid())
+  room           Room         @relation(fields: [roomId], references: [id])
+  roomId         String       @map("room_id")
+  interviewee    User         @relation("IntervieweeSessions", fields: [intervieweeId], references: [id])
+  intervieweeId  String       @map("interviewee_id")
+  role           InterviewRole
+  roundNumber    Int          @map("round_number")
+  phase          SessionPhase @default(role_selection)
+  currentQuestionNumber Int   @default(1) @map("current_question_number")
+  startedAt      DateTime?    @map("started_at")
+  completedAt    DateTime?    @map("completed_at")
+  timerEndsAt    DateTime?    @map("timer_ends_at")
+  averageScore   Float?       @map("average_score")
+
+  // Relations
+  sessionQuestions SessionQuestion[]
+
+  @@map("interview_sessions")
+}
+
+model SessionQuestion {
+  id              String           @id @default(uuid())
+  session         InterviewSession @relation(fields: [sessionId], references: [id])
+  sessionId       String           @map("session_id")
+  question        Question         @relation(fields: [questionId], references: [id])
+  questionId      String           @map("question_id")
+  questionNumber  Int              @map("question_number")
+  isSelected      Boolean          @default(false) @map("is_selected")
+  isVotingQuestion Boolean         @default(false) @map("is_voting_question")
+  answerStartedAt DateTime?        @map("answer_started_at")
+  answerEndedAt   DateTime?        @map("answer_ended_at")
+  answerText      String?          @map("answer_text")
+  averageScore    Float?           @map("average_score")
+
+  // Relations
+  votes       QuestionVote[]
+  evaluations Evaluation[]
+
+  @@map("session_questions")
+}
+
+model QuestionVote {
+  id                String          @id @default(uuid())
+  sessionQuestion   SessionQuestion @relation(fields: [sessionQuestionId], references: [id])
+  sessionQuestionId String          @map("session_question_id")
+  voterId           String          @map("voter_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  @@unique([sessionQuestionId, voterId])
+  @@map("question_votes")
+}
+
+model Evaluation {
+  id                String          @id @default(uuid())
+  sessionQuestion   SessionQuestion @relation(fields: [sessionQuestionId], references: [id])
+  sessionQuestionId String          @map("session_question_id")
+  evaluator         User            @relation("EvaluatorEvaluations", fields: [evaluatorId], references: [id])
+  evaluatorId       String          @map("evaluator_id")
+  score             Int
+  feedback          String          @default("")
+  submittedAt       DateTime        @default(now()) @map("submitted_at")
+
+  @@unique([sessionQuestionId, evaluatorId])
+  @@map("evaluations")
+}
+
+model AwardVote {
+  id          String        @id @default(uuid())
+  room        Room          @relation(fields: [roomId], references: [id])
+  roomId      String        @map("room_id")
+  voter       User          @relation("VoterAwardVotes", fields: [voterId], references: [id])
+  voterId     String        @map("voter_id")
+  nominee     User          @relation("NomineeAwardVotes", fields: [nomineeId], references: [id])
+  nomineeId   String        @map("nominee_id")
+  category    AwardCategory
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@unique([roomId, voterId, category])
+  @@map("award_votes")
+}
+
+model AiAnalysis {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @map("user_id")
+  roomId      String   @map("room_id")
+  strengths   String[]
+  weaknesses  String[]
+  studyTopics String[] @map("study_topics")
+  summary     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("ai_analyses")
+}
+
+model SessionResult {
+  id           String   @id @default(uuid())
+  room         Room     @relation(fields: [roomId], references: [id])
+  roomId       String   @map("room_id")
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String   @map("user_id")
+  totalScore   Float    @map("total_score")
+  averageScore Float    @map("average_score")
+  rank         Int
+  awardsReceived AwardCategory[] @map("awards_received")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([roomId, userId])
+  @@map("session_results")
+}

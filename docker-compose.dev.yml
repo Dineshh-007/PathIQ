@@ -1,0 +1,41 @@
+# docker-compose.dev.yml
+# Spins up ONLY Postgres + Redis for local development.
+# Your server and web app run natively with hot-reload.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#   npm run dev   (from root — starts both server + web via turbo)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: peerprep_postgres_dev
+    environment:
+      POSTGRES_USER: peerprep
+      POSTGRES_PASSWORD: peerprep_secret
+      POSTGRES_DB: peerprep
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # exposed on host so tsx can reach it
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peerprep"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: peerprep_redis_dev
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"   # exposed on host so BullMQ / ioredis can reach it
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

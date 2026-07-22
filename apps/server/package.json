@@ -1,0 +1,42 @@
+{
+  "name": "@peerprep/server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.1.0",
+    "@fastify/rate-limit": "^11.1.0",
+    "@google/generative-ai": "^0.21.0",
+    "@peerprep/shared-types": "*",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.80.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "fastify": "^5.10.0",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "socket.io": "^4.8.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.7",
+    "@types/supertest": "^7.2.1",
+    "prisma": "^5.22.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
+  }
+}
