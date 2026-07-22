@@ -17,8 +17,8 @@ COPY packages/shared-types ./packages/shared-types
 COPY apps/web ./apps/web
 
 # Build args injected at docker build time (baked into the static bundle)
-ARG NEXT_PUBLIC_API_URL=http://localhost:3001
-ARG NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+ARG NEXT_PUBLIC_API_URL=https://pathiq-api.onrender.com
+ARG NEXT_PUBLIC_SOCKET_URL=https://pathiq-api.onrender.com
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 
