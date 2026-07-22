@@ -1,14 +1,11 @@
 services:
   - type: web
     name: pathiq-api
-    env: node
+    env: docker
+    dockerfilePath: apps/server/Dockerfile
     plan: free
-    buildCommand: "npm install --include=dev && npx prisma generate --schema=apps/server/prisma/schema.prisma && npx turbo run build --filter=@peerprep/server"
-    startCommand: "cd apps/server && npm run start"
     healthCheckPath: /health
     envVars:
-      - key: NODE_VERSION
-        value: "20"
       - key: DATABASE_URL
         fromDatabase:
           name: pathiq-db
@@ -29,17 +26,16 @@ services:
 
   - type: web
     name: pathiq-web
-    env: node
+    env: docker
+    dockerfilePath: apps/web/Dockerfile
     plan: free
-    buildCommand: "npm install --include=dev && npx turbo run build --filter=web"
-    startCommand: "cd apps/web && npm run start"
     envVars:
-      - key: NODE_VERSION
-        value: "20"
       - key: NEXT_PUBLIC_API_URL
         value: "https://pathiq-api.onrender.com"
       - key: NEXT_PUBLIC_SOCKET_URL
         value: "https://pathiq-api.onrender.com"
+      - key: PORT
+        value: 3000
 
   - type: redis
     name: pathiq-redis
