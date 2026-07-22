@@ -65,8 +65,20 @@ async function bootstrap() {
   registerInterviewSocket(io);
 
   // ─── Start ─────────────────────────────────────────────────────────────────
-  await prisma.$connect();
-  console.log('✅ Database connected');
+  // ─── Start ─────────────────────────────────────────────────────────────────
+  let retries = 15;
+  while (retries > 0) {
+    try {
+      await prisma.$connect();
+      console.log('✅ Database connected');
+      break;
+    } catch (err: any) {
+      console.error(`Database connection failed, retrying in 5s... (${retries} retries left)`);
+      retries -= 1;
+      if (retries === 0) throw err;
+      await new Promise(res => setTimeout(res, 5000));
+    }
+  }
 
   await app.listen({ port: PORT, host: '0.0.0.0' });
   console.log(`🚀 PathIQ server running on http://localhost:${PORT}`);
