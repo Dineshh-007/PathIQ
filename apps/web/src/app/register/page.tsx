@@ -75,7 +75,7 @@ export default function RegisterPage() {
             </div>
             {form.password && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                {[1,2,3].map((level) => (
+                {[1, 2, 3].map((level) => (
                   <div key={level} style={{ flex: 1, height: 3, borderRadius: 2, background: strength >= level ? strengthColors[strength] : 'var(--color-surface-3)', transition: 'background 0.3s' }} />
                 ))}
                 <span style={{ fontSize: '0.72rem', color: strengthColors[strength], fontWeight: 600, minWidth: 40 }}>{strengthLabels[strength]}</span>

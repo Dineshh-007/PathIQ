@@ -22,7 +22,17 @@ export default function LoginPage() {
       setAuth(data.user, data.accessToken, data.refreshToken);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      const errorData = err.response?.data?.error;
+      if (typeof errorData === 'object' && errorData !== null) {
+        const messages: string[] = [];
+        if (errorData.formErrors?.length) messages.push(...errorData.formErrors);
+        if (errorData.fieldErrors) {
+          Object.values(errorData.fieldErrors).forEach((errs: any) => messages.push(...errs));
+        }
+        setError(messages.join('. ') || 'Invalid input provided.');
+      } else {
+        setError(errorData || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
