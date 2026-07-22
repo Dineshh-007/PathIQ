@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { execSync } from 'child_process';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -46,6 +47,20 @@ async function bootstrap() {
 
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
+  // ─── Diagnostic DB Sync Route ──────────────────────────────────────────────
+  app.get('/api/system/sync-db', async (req, reply) => {
+    try {
+      const output = execSync('npx prisma db push --accept-data-loss', { encoding: 'utf-8' });
+      return { status: 'success', output };
+    } catch (err: any) {
+      reply.status(500).send({
+        status: 'error',
+        message: err.message,
+        stdout: err.stdout?.toString(),
+        stderr: err.stderr?.toString()
+      });
+    }
+  });
   // ─── Socket.io ─────────────────────────────────────────────────────────────
   const httpServer = app.server;
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
