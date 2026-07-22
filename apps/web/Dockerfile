@@ -39,4 +39,4 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "PORT=3000 node apps/web/server.js"]
+CMD ["node", "apps/web/server.js"]
