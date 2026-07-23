@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CodingQuestion, CodingRoom, CodingSessionPhase } from '@interview/shared-types';
+import { CodingQuestion, CodingRoom, CodingSessionPhase } from '@peerprep/shared-types';
 import axios from 'axios';
 import { Play, Loader2, Check } from 'lucide-react';
 

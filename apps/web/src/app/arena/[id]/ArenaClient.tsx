@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { CodingRoom, ClientToServerEvents, ServerToClientEvents } from '@interview/shared-types';
+import { CodingRoom, ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { WebRTCProvider } from '../../../components/coding/WebRTCProvider';
 import ArenaLobby from '../../../components/coding/ArenaLobby';
 import ArenaRoom from '../../../components/coding/ArenaRoom';

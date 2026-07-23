@@ -1,5 +1,5 @@
 import { Server as IoServer, Socket } from 'socket.io';
-import { ClientToServerEvents, ServerToClientEvents } from '@interview/shared-types';
+import { ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { prisma } from '../config/database';
 
 export function registerCodingSocket(io: IoServer) {

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { ClientToServerEvents, ServerToClientEvents } from '@interview/shared-types';
+import { ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 
 interface WebRTCContextType {
   localStream: MediaStream | null;

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import CodeEditor from './CodeEditor';
 import ExecutionPanel from './ExecutionPanel';
 import VideoOverlay from './VideoOverlay';
-import { CodingRoom, CodingQuestion, CodingSession } from '@interview/shared-types';
+import { CodingRoom, CodingQuestion, CodingSession } from '@peerprep/shared-types';
 
 interface ArenaRoomProps {
   room: CodingRoom;
