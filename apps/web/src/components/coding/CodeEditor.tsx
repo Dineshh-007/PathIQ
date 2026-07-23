@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import { MonacoBinding } from 'y-monaco';
+import { MonacoBinding } from '../../utils/y-monaco';
 
 interface CodeEditorProps {
   roomId: string;
