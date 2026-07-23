@@ -7,7 +7,7 @@ import { WebRTCProvider } from '../../../components/coding/WebRTCProvider';
 import ArenaLobby from '../../../components/coding/ArenaLobby';
 import ArenaRoom from '../../../components/coding/ArenaRoom';
 import FeedbackScreen from '../../../components/coding/FeedbackScreen';
-import { useAuthStore } from '../../../store/useAuthStore'; // Assuming this exists
+// import { useAuthStore } from '../../../store/useAuthStore'; // Mocked for now
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -32,8 +32,8 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
       localStorage.setItem('userId', id);
       localStorage.setItem('userName', name);
     }
-    setUserId(id);
-    setUserName(name);
+    setUserId(id || '');
+    setUserName(name || '');
   }, []);
 
   useEffect(() => {

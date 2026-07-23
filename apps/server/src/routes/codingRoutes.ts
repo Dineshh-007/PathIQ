@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prisma } from '../index';
+import { prisma } from '../config/database';
 
 export default async function codingRoutes(app: FastifyInstance) {
   // Create a new coding room
@@ -105,7 +105,7 @@ export default async function codingRoutes(app: FastifyInstance) {
         })
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
       
       if (data.compile && data.compile.code !== 0) {
         return { output: '', error: data.compile.output };

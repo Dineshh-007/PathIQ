@@ -1,11 +1,11 @@
 import { Server as IoServer, Socket } from 'socket.io';
 import { ClientToServerEvents, ServerToClientEvents } from '@interview/shared-types';
-import { prisma } from '../index';
+import { prisma } from '../config/database';
 
 export function registerCodingSocket(io: IoServer) {
   io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
     // Join a coding room
-  socket.on('coding:join_room', async ({ roomId }) => {
+  socket.on('coding:join_room', async ({ roomId }: { roomId: string }) => {
     socket.join(`coding:${roomId}`);
     
     // Optionally fetch room state and broadcast
@@ -19,7 +19,7 @@ export function registerCodingSocket(io: IoServer) {
   });
 
   // State Transitions
-  socket.on('coding:propose_questions', async ({ questionIds }) => {
+  socket.on('coding:propose_questions', async ({ questionIds }: { questionIds: string[] }) => {
     // We need to find the room this socket is in
     const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
     if (!rooms.length) return;
@@ -37,7 +37,7 @@ export function registerCodingSocket(io: IoServer) {
     io.to(`coding:${roomId}`).emit('coding:room_state', room as any);
   });
 
-  socket.on('coding:select_question', async ({ questionId }) => {
+  socket.on('coding:select_question', async ({ questionId }: { questionId: string }) => {
     const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
     if (!rooms.length) return;
     const roomId = rooms[0].split(':')[1];
@@ -79,7 +79,7 @@ export function registerCodingSocket(io: IoServer) {
     io.to(`coding:${roomId}`).emit('coding:room_state', room as any);
   });
 
-  socket.on('coding:submit_feedback', async (feedback) => {
+  socket.on('coding:submit_feedback', async (feedback: any) => {
     const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
     if (!rooms.length) return;
     const roomId = rooms[0].split(':')[1];
@@ -97,15 +97,15 @@ export function registerCodingSocket(io: IoServer) {
   });
 
   // WebRTC Signaling
-  socket.on('webrtc:offer', ({ targetUserId, offer }) => {
+  socket.on('webrtc:offer', ({ targetUserId, offer }: { targetUserId: string; offer: any }) => {
     socket.to(`user:${targetUserId}`).emit('webrtc:offer', { sourceUserId: getSocketUserId(socket), offer });
   });
 
-  socket.on('webrtc:answer', ({ targetUserId, answer }) => {
+  socket.on('webrtc:answer', ({ targetUserId, answer }: { targetUserId: string; answer: any }) => {
     socket.to(`user:${targetUserId}`).emit('webrtc:answer', { sourceUserId: getSocketUserId(socket), answer });
   });
 
-    socket.on('webrtc:ice_candidate', ({ targetUserId, candidate }) => {
+    socket.on('webrtc:ice_candidate', ({ targetUserId, candidate }: { targetUserId: string; candidate: any }) => {
       socket.to(`user:${targetUserId}`).emit('webrtc:ice_candidate', { sourceUserId: getSocketUserId(socket), candidate });
     });
   });
