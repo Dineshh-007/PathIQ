@@ -253,8 +253,8 @@ model CodingRoom {
   id              String   @id @default(uuid())
   interviewer     User     @relation("InterviewerCodingRooms", fields: [interviewerId], references: [id])
   interviewerId   String   @map("interviewer_id")
-  candidate       User     @relation("CandidateCodingRooms", fields: [candidateId], references: [id])
-  candidateId     String   @map("candidate_id")
+  candidate       User?    @relation("CandidateCodingRooms", fields: [candidateId], references: [id])
+  candidateId     String?  @map("candidate_id")
   status          String   @default("waiting") // waiting, active, completed
   createdAt       DateTime @default(now()) @map("created_at")
   endedAt         DateTime? @map("ended_at")

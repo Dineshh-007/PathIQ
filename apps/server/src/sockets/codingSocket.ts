@@ -9,10 +9,21 @@ export function registerCodingSocket(io: IoServer) {
     socket.join(`coding:${roomId}`);
     
     // Optionally fetch room state and broadcast
-    const room = await prisma.codingRoom.findUnique({
+    let room = await prisma.codingRoom.findUnique({
       where: { id: roomId },
       include: { sessions: true }
     });
+    
+    // Assign candidate if missing and joining user is not interviewer
+    const userId = getSocketUserId(socket);
+    if (room && !room.candidateId && room.interviewerId !== userId) {
+      room = await prisma.codingRoom.update({
+        where: { id: roomId },
+        data: { candidateId: userId },
+        include: { sessions: true }
+      });
+    }
+
     if (room) {
       socket.emit('coding:room_state', room as any);
     }

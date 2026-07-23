@@ -5,12 +5,11 @@ export default async function codingRoutes(app: FastifyInstance) {
   // Create a new coding room
   app.post('/api/coding/rooms', async (req, reply) => {
     try {
-      const { interviewerId, candidateId } = req.body as { interviewerId: string; candidateId: string };
+      const { interviewerId } = req.body as { interviewerId: string };
       
       const room = await prisma.codingRoom.create({
         data: {
           interviewerId,
-          candidateId,
           status: 'waiting',
           sessions: {
             create: {

@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { roomApi } from '@/services/api';
+import { roomApi, arenaApi } from '@/services/api';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuthStore();
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
+  const [creatingArena, setCreatingArena] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,6 +28,19 @@ export default function DashboardPage() {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create room');
       setCreating(false);
+    }
+  };
+
+  const handleCreateArena = async () => {
+    if (!user) return;
+    setCreatingArena(true);
+    setError('');
+    try {
+      const { data } = await arenaApi.create(user.id);
+      router.push(`/arena/${data.room.id}`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to create arena room');
+      setCreatingArena(false);
     }
   };
 
@@ -148,6 +162,25 @@ export default function DashboardPage() {
             <p style={{ marginTop: 16, fontSize: '0.78rem', color: 'var(--color-text-subtle)', textAlign: 'center' }}>
               Room codes are exactly 6 characters
             </p>
+          </div>
+
+          {/* Create 1v1 Arena Card */}
+          <div className="glass fade-in-up" style={{ padding: 36, animationDelay: '0.2s' }}>
+            <div style={{ fontSize: 44, marginBottom: 16 }}>⚔️</div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 10, letterSpacing: '-0.02em' }}>1v1 Coding Arena</h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', lineHeight: 1.7, marginBottom: 28 }}>
+              Host a live FAANG-style technical interview. Real-time code execution, WebRTC video, and strict evaluation rubrics.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+              {[['📹', 'Low-latency P2P Video'], ['🚀', 'Secure code execution'], ['📝', 'FAANG questions'], ['⭐', '5-star grading rubric']].map(([icon, text]) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                  <span>{icon}</span><span>{text}</span>
+                </div>
+              ))}
+            </div>
+            <button id="create-arena-btn" className="btn-primary" onClick={handleCreateArena} disabled={creatingArena} style={{ width: '100%', padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
+              {creatingArena ? <><span className="spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} /> Entering...</> : 'Enter Arena'}
+            </button>
           </div>
         </div>
 

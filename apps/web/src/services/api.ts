@@ -60,3 +60,9 @@ export const roomApi = {
 export const aiApi = {
   analyze: (roomId: string) => api.post('/ai/analyze', { roomId }),
 };
+
+// ── Arena ─────────────────────────────────────────────────────────────────────
+export const arenaApi = {
+  create: (interviewerId: string) => api.post('/coding/rooms', { interviewerId }),
+  get: (id: string) => api.get(`/coding/rooms/${id}`),
+};
