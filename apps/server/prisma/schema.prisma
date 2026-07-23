@@ -72,6 +72,8 @@ model User {
   sessionResults      SessionResult[]
   interviewSessions   InterviewSession[]   @relation("IntervieweeSessions")
   submittedQuestions  Question[]
+  interviewerCodingRooms CodingRoom[] @relation("InterviewerCodingRooms")
+  candidateCodingRooms   CodingRoom[] @relation("CandidateCodingRooms")
 
   @@map("users")
 }
@@ -243,4 +245,55 @@ model SessionResult {
 
   @@unique([roomId, userId])
   @@map("session_results")
+}
+
+// ─── 1v1 Live Coding Arena Models ──────────────────────────────────────────────
+
+model CodingRoom {
+  id              String   @id @default(uuid())
+  interviewer     User     @relation("InterviewerCodingRooms", fields: [interviewerId], references: [id])
+  interviewerId   String   @map("interviewer_id")
+  candidate       User     @relation("CandidateCodingRooms", fields: [candidateId], references: [id])
+  candidateId     String   @map("candidate_id")
+  status          String   @default("waiting") // waiting, active, completed
+  createdAt       DateTime @default(now()) @map("created_at")
+  endedAt         DateTime? @map("ended_at")
+  
+  sessions        CodingSession[]
+
+  @@map("coding_rooms")
+}
+
+model CodingSession {
+  id              String   @id @default(uuid())
+  room            CodingRoom @relation(fields: [roomId], references: [id])
+  roomId          String   @map("room_id")
+  question        CodingQuestion? @relation(fields: [questionId], references: [id])
+  questionId      String?  @map("question_id")
+  proposedQIds    String[] @map("proposed_q_ids")
+  phase           String   @default("proposing") // proposing, selecting, coding, finished
+  codeSnapshot    String   @default("") @db.Text @map("code_snapshot")
+  language        String   @default("javascript")
+  
+  // Feedback
+  technicalScore  Int?     @map("technical_score")
+  problemSolving  Int?     @map("problem_solving")
+  communication   Int?
+  codeQuality     Int?     @map("code_quality")
+  writtenFeedback String?  @db.Text @map("written_feedback")
+
+  @@map("coding_sessions")
+}
+
+model CodingQuestion {
+  id              String   @id @default(uuid())
+  title           String
+  description     String   @db.Text
+  category        String   
+  difficulty      String
+  testCases       Json     @default("[]") @map("test_cases")
+  
+  sessions        CodingSession[]
+
+  @@map("coding_questions")
 }

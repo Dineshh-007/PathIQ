@@ -8,9 +8,14 @@ import type { ServerToClientEvents, ClientToServerEvents } from '@peerprep/share
 import { authRoutes } from './routes/auth';
 import { roomRoutes } from './routes/rooms';
 import { aiRoutes } from './routes/ai';
+import codingRoutes from './routes/codingRoutes';
 import { registerRoomSocket } from './sockets/roomSocket';
 import { registerInterviewSocket } from './sockets/interviewSocket';
+import { registerCodingSocket } from './sockets/codingSocket';
 import { prisma } from './config/database';
+import { WebSocketServer } from 'ws';
+// @ts-ignore
+import { setupWSConnection } from 'y-websocket/bin/utils';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
@@ -44,6 +49,7 @@ async function bootstrap() {
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(roomRoutes, { prefix: '/api/rooms' });
   await app.register(aiRoutes, { prefix: '/api/ai' });
+  await app.register(codingRoutes);
 
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
@@ -87,12 +93,34 @@ async function bootstrap() {
     transports: ['websocket', 'polling'],
   });
 
+  // Setup Yjs Native WebSocket Server for real-time CRDT syncing
+  const wss = new WebSocketServer({ noServer: true });
+  wss.on('connection', setupWSConnection);
+
+  httpServer.on('upgrade', (request, socket, head) => {
+    if (request.url?.startsWith('/yjs')) {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+  });
+
   // Attach io to fastify instance for use in routes
   app.decorate('io', io);
 
   // Register socket namespaces
   registerRoomSocket(io);
   registerInterviewSocket(io);
+  registerCodingSocket(io);
+
+  // Add the user room logic inside io.on connection directly here or inside the socket files.
+  // Actually, we can just let codingSocket.ts handle it or add a global connection listener here.
+  io.on('connection', (socket) => {
+    const userId = (socket as any)._userId ?? socket.handshake.query.userId;
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+  });
 
   // ─── Start ─────────────────────────────────────────────────────────────────
   await app.listen({ port: PORT, host: '0.0.0.0' });

@@ -316,6 +316,87 @@ const questions = [
   },
 ];
 
+async function seedCodingQuestions() {
+  console.log('🌱 Seeding 1v1 Arena Coding Questions...');
+  const count = await prisma.codingQuestion.count();
+  if (count > 0) {
+    console.log(`✓ Coding questions already seeded (${count} questions)`);
+    return;
+  }
+
+  const questions = [
+    {
+      title: 'Two Sum',
+      description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.',
+      category: 'Arrays',
+      difficulty: 'easy',
+      testCases: [
+        { input: '[2,7,11,15]\n9', output: '[0,1]', hidden: false },
+        { input: '[3,2,4]\n6', output: '[1,2]', hidden: false },
+        { input: '[3,3]\n6', output: '[0,1]', hidden: false },
+        { input: '[2,5,5,11]\n10', output: '[1,2]', hidden: true }
+      ]
+    },
+    {
+      title: 'Valid Parentheses',
+      description: 'Given a string s containing just the characters "(", ")", "{", "}", "[" and "]", determine if the input string is valid.\n\nAn input string is valid if:\n1. Open brackets must be closed by the same type of brackets.\n2. Open brackets must be closed in the correct order.\n3. Every close bracket has a corresponding open bracket of the same type.',
+      category: 'Strings',
+      difficulty: 'easy',
+      testCases: [
+        { input: '"()"', output: 'true', hidden: false },
+        { input: '"()[]{}"', output: 'true', hidden: false },
+        { input: '"(]"', output: 'false', hidden: false },
+        { input: '"([)]"', output: 'false', hidden: true }
+      ]
+    },
+    {
+      title: 'Merge Intervals',
+      description: 'Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.',
+      category: 'Arrays',
+      difficulty: 'medium',
+      testCases: [
+        { input: '[[1,3],[2,6],[8,10],[15,18]]', output: '[[1,6],[8,10],[15,18]]', hidden: false },
+        { input: '[[1,4],[4,5]]', output: '[[1,5]]', hidden: false },
+        { input: '[[1,4],[0,4]]', output: '[[0,4]]', hidden: true }
+      ]
+    },
+    {
+      title: 'Longest Substring Without Repeating Characters',
+      description: 'Given a string s, find the length of the longest substring without repeating characters.',
+      category: 'Strings',
+      difficulty: 'medium',
+      testCases: [
+        { input: '"abcabcbb"', output: '3', hidden: false },
+        { input: '"bbbbb"', output: '1', hidden: false },
+        { input: '"pwwkew"', output: '3', hidden: false },
+        { input: '""', output: '0', hidden: true }
+      ]
+    },
+    {
+      title: 'LRU Cache',
+      description: 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.\n\nImplement the LRUCache class:\n- LRUCache(int capacity) Initialize the LRU cache with positive size capacity.\n- int get(int key) Return the value of the key if the key exists, otherwise return -1.\n- void put(int key, int value) Update the value of the key if the key exists. Otherwise, add the key-value pair to the cache. If the number of keys exceeds the capacity from this operation, evict the least recently used key.\n\nThe functions get and put must each run in O(1) average time complexity.',
+      category: 'System Design',
+      difficulty: 'hard',
+      testCases: [
+        { input: '["LRUCache", "put", "put", "get", "put", "get", "put", "get", "get", "get"]\n[[2], [1, 1], [2, 2], [1], [3, 3], [2], [4, 4], [1], [3], [4]]', output: '[null, null, null, 1, null, -1, null, -1, 3, 4]', hidden: false }
+      ]
+    }
+  ];
+
+  for (const q of questions) {
+    await prisma.codingQuestion.create({
+      data: {
+        title: q.title,
+        description: q.description,
+        category: q.category,
+        difficulty: q.difficulty,
+        testCases: q.testCases
+      }
+    });
+  }
+  console.log(`✓ Seeded ${questions.length} coding questions`);
+}
+
 async function main() {
   console.log('🌱 Seeding question bank...');
 
@@ -323,6 +404,7 @@ async function main() {
   const existingCount = await prisma.question.count();
   if (existingCount >= questions.length) {
     console.log(`✅ Already seeded (${existingCount} questions found). Skipping.`);
+    await seedCodingQuestions();
     return;
   }
 
@@ -341,6 +423,8 @@ async function main() {
 
   const count = await prisma.question.count();
   console.log(`✅ Seeded ${count} questions across 6 roles.`);
+
+  await seedCodingQuestions();
 }
 
 main()

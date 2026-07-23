@@ -73,6 +73,45 @@ export interface Question {
   difficulty: Difficulty;
 }
 
+// ─── 1v1 Live Coding Arena ────────────────────────────────────────────────────
+
+export type CodingRoomStatus = 'waiting' | 'active' | 'completed';
+export type CodingSessionPhase = 'proposing' | 'selecting' | 'coding' | 'evaluating' | 'finished';
+
+export interface CodingQuestion {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  testCases: Array<{ input: string; output: string; hidden: boolean }>;
+}
+
+export interface CodingSession {
+  id: string;
+  roomId: string;
+  questionId: string | null;
+  proposedQIds: string[];
+  phase: CodingSessionPhase;
+  codeSnapshot: string;
+  language: string;
+  technicalScore?: number;
+  problemSolving?: number;
+  communication?: number;
+  codeQuality?: number;
+  writtenFeedback?: string;
+}
+
+export interface CodingRoom {
+  id: string;
+  interviewerId: string;
+  candidateId: string;
+  status: CodingRoomStatus;
+  createdAt: string;
+  endedAt?: string;
+  sessions: CodingSession[];
+}
+
 // ─── Interview Session ────────────────────────────────────────────────────────
 
 export interface InterviewSession {
@@ -155,6 +194,20 @@ export interface ClientToServerEvents {
 
   // AI
   'ai:request_analysis': () => void;
+
+  // 1v1 Coding Arena
+  'coding:create_room': (data: { candidateId: string }) => void;
+  'coding:join_room': (data: { roomId: string }) => void;
+  'coding:propose_questions': (data: { questionIds: string[] }) => void;
+  'coding:select_question': (data: { questionId: string }) => void;
+  'coding:end_session': () => void;
+  'coding:run_code': (data: { code: string; language: string }) => void;
+  'coding:submit_feedback': (data: { technicalScore: number; problemSolving: number; communication: number; codeQuality: number; writtenFeedback: string }) => void;
+  
+  // WebRTC Signaling
+  'webrtc:offer': (data: { targetUserId: string; offer: any }) => void;
+  'webrtc:answer': (data: { targetUserId: string; answer: any }) => void;
+  'webrtc:ice_candidate': (data: { targetUserId: string; candidate: any }) => void;
 }
 
 // ─── Socket Events (Server → Client) ─────────────────────────────────────────
@@ -211,4 +264,17 @@ export interface ServerToClientEvents {
   // System
   'error': (message: string) => void;
   'notification': (data: { type: 'info' | 'warning' | 'success'; message: string }) => void;
+
+  // 1v1 Coding Arena
+  'coding:room_created': (room: CodingRoom) => void;
+  'coding:room_state': (room: CodingRoom) => void;
+  'coding:questions_proposed': (data: { questions: CodingQuestion[] }) => void;
+  'coding:question_selected': (data: { question: CodingQuestion }) => void;
+  'coding:execution_started': () => void;
+  'coding:execution_result': (data: { output: string; error?: string; time: number }) => void;
+
+  // WebRTC Signaling
+  'webrtc:offer': (data: { sourceUserId: string; offer: any }) => void;
+  'webrtc:answer': (data: { sourceUserId: string; answer: any }) => void;
+  'webrtc:ice_candidate': (data: { sourceUserId: string; candidate: any }) => void;
 }

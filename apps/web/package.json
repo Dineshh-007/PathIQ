@@ -15,7 +15,12 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "socket.io-client": "^4.8.3",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "yjs": "^13.6.14",
+    "y-websocket": "^1.5.0",
+    "y-monaco": "^0.1.6",
+    "@monaco-editor/react": "^4.6.0",
+    "lucide-react": "^0.473.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
