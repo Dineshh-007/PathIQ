@@ -16,7 +16,7 @@ interface ArenaRoomProps {
 
 export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFinishSession }: ArenaRoomProps) {
   const session = room.sessions?.[0];
-  const question = session?.question as unknown as CodingQuestion; // The populated question
+  const question = (session as any)?.question as CodingQuestion; // The populated question
   const isInterviewer = userId === room.interviewerId;
 
   const [code, setCode] = useState(session?.codeSnapshot || '');
