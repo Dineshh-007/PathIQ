@@ -591,6 +591,17 @@ async function advanceSession(io: IoServer, room: any, session: any, roomCode: s
 async function computeAndEmitResults(io: IoServer, room: any, roomCode: string) {
   const sessions = await prisma.interviewSession.findMany({
     where: { roomId: room.id, phase: 'completed' },
+    include: {
+      sessionQuestions: {
+        where: { isSelected: true },
+        include: {
+          question: true,
+          evaluations: {
+            include: { evaluator: { select: { name: true } } }
+          }
+        }
+      }
+    },
     orderBy: { roundNumber: 'asc' },
   });
 
@@ -650,6 +661,23 @@ async function computeAndEmitResults(io: IoServer, room: any, roomCode: string) 
     const awardsReceived = Object.entries(awardWinners)
       .filter(([, uid]) => uid === r.userId)
       .map(([cat]) => cat as AwardCategory);
+    const session = sessions.find((s: any) => s.intervieweeId === r.userId);
+    
+    const questionScores = session?.sessionQuestions.map((sq: any) => ({
+      questionId: sq.questionId,
+      questionText: sq.question?.text ?? 'Unknown Question',
+      average: sq.averageScore ?? 0,
+    })) ?? [];
+
+    const feedbackReceived = session?.sessionQuestions.flatMap((sq: any) =>
+      sq.evaluations.map((e: any) => ({
+        evaluatorId: e.evaluatorId,
+        evaluatorName: e.evaluator?.name ?? 'Interviewer',
+        score: e.score,
+        feedback: e.feedback,
+      }))
+    ) ?? [];
+
     return {
       userId: r.userId,
       name: p?.user.name ?? 'Unknown',
@@ -657,8 +685,8 @@ async function computeAndEmitResults(io: IoServer, room: any, roomCode: string) 
       totalScore: r.totalScore,
       averageScore: r.averageScore,
       rank: r.rank,
-      questionScores: [],
-      feedbackReceived: [],
+      questionScores,
+      feedbackReceived,
       awardsReceived,
     };
   });

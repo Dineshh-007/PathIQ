@@ -25,23 +25,24 @@ export async function fetchCandidateQuestions(
   const questions = await prisma.question.findMany({
     where: {
       role,
+      difficulty: { in: ['medium', 'hard'] },
       approved: true,
       id: { notIn: usedIds.length ? usedIds : ['__none__'] },
     },
     orderBy: { usageCount: 'asc' }, // prefer less-used questions
-    take: 5,
   });
 
-  // If not enough unique questions, fall back without exclusion
   let finalQuestions = questions;
   if (questions.length < 5) {
     const fallback = await prisma.question.findMany({
-      where: { role, approved: true },
+      where: { role, difficulty: { in: ['medium', 'hard'] }, approved: true },
       orderBy: { usageCount: 'asc' },
-      take: 5,
     });
     finalQuestions = fallback;
   }
+
+  // Shuffle and pick 5 to avoid deterministic repetition when usageCount is identical
+  finalQuestions = finalQuestions.sort(() => Math.random() - 0.5).slice(0, 5);
 
   // If DB is literally completely empty, inject dummy questions
   if (finalQuestions.length === 0) {
