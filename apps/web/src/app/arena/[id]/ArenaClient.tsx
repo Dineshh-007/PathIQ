@@ -26,9 +26,14 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const newSocket = io(socketUrl, {
       query: { userId: user.id },
-      withCredentials: true
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
     });
 
     newSocket.on('connect', () => {

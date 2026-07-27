@@ -67,7 +67,7 @@ async function bootstrap() {
 
   // ─── CORS ──────────────────────────────────────────────────────────────────
   await app.register(cors, {
-    origin: CLIENT_URL,
+    origin: true,
     credentials: true,
   });
 
@@ -128,8 +128,8 @@ async function bootstrap() {
   const httpServer = app.server;
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: CLIENT_URL,
-      methods: ['GET', 'POST'],
+      origin: (origin, callback) => callback(null, true),
+      methods: ['GET', 'POST', 'OPTIONS'],
       credentials: true,
     },
     transports: ['websocket', 'polling'],

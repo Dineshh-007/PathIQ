@@ -16,12 +16,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 (excluding auth routes)
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthRoute = original?.url?.includes('/auth/login') || original?.url?.includes('/auth/register') || original?.url?.includes('/auth/refresh');
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       const { refreshToken, setAccessToken, logout } = useAuthStore.getState();
       if (!refreshToken) { logout(); return Promise.reject(error); }
@@ -32,7 +33,9 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         logout();
-        window.location.href = '/login';
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

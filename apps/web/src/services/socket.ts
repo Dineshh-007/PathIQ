@@ -8,7 +8,7 @@ let socket: AppSocket | null = null;
 
 export function getSocket(): AppSocket {
   if (!socket) {
-    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: false,
