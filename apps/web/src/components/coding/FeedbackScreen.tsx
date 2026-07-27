@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, CheckCircle2 } from 'lucide-react';
 
 interface FeedbackScreenProps {
   isInterviewer: boolean;
@@ -27,20 +26,20 @@ export default function FeedbackScreen({ isInterviewer, onSubmitFeedback, onExit
 
   if (!isInterviewer) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#111111] text-white p-12">
-        <CheckCircle2 className="w-20 h-20 text-green-500 mb-6" />
-        <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-          Interview Completed!
-        </h1>
-        <p className="text-gray-400 text-lg mb-8 text-center max-w-lg">
-          You have successfully completed the Live Coding Arena challenge. Your interviewer is currently submitting their feedback.
-        </p>
-        <button
-          onClick={onExit}
-          className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-        >
-          Return to Dashboard
-        </button>
+      <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#08080f', color: 'white', padding: 48 }}>
+        <div className="bg-mesh" />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
+          <h1 className="text-gradient fade-in-up" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 900, marginBottom: 12 }}>
+            Interview Completed!
+          </h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', marginBottom: 32, maxWidth: 500 }}>
+            You have successfully completed the Live Coding Arena challenge. Your interviewer is currently submitting their feedback.
+          </p>
+          <button onClick={onExit} className="btn-ghost" style={{ padding: '12px 28px', fontSize: '0.9rem' }}>
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
@@ -59,52 +58,62 @@ export default function FeedbackScreen({ isInterviewer, onSubmitFeedback, onExit
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#111111] text-white p-12">
-        <CheckCircle2 className="w-20 h-20 text-blue-500 mb-6" />
-        <h1 className="text-4xl font-bold mb-4">Feedback Submitted</h1>
-        <p className="text-gray-400 text-lg mb-8">Thank you for evaluating the candidate.</p>
-        <button
-          onClick={onExit}
-          className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all"
-        >
-          Close Session
-        </button>
+      <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#08080f', color: 'white', padding: 48 }}>
+        <div className="bg-mesh" />
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🎉</div>
+          <h1 className="fade-in-up" style={{ fontSize: '2rem', fontWeight: 900, marginBottom: 12 }}>Feedback Submitted</h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', marginBottom: 32 }}>Thank you for evaluating the candidate.</p>
+          <button onClick={onExit} className="btn-primary" style={{ padding: '13px 32px', fontSize: '0.9rem' }}>
+            Close Session
+          </button>
+        </div>
       </div>
     );
   }
 
   const categories = [
-    { key: 'technicalScore', label: 'Technical Execution', desc: 'Correctness and efficiency of the code' },
-    { key: 'problemSolving', label: 'Problem Solving', desc: 'Approach, algorithms, and handling edge cases' },
-    { key: 'communication', label: 'Communication', desc: 'Clarity in explaining thought process' },
-    { key: 'codeQuality', label: 'Code Quality', desc: 'Cleanliness, readability, and naming conventions' },
+    { key: 'technicalScore', label: 'Technical Execution', desc: 'Correctness and efficiency of the code', icon: '💻' },
+    { key: 'problemSolving', label: 'Problem Solving', desc: 'Approach, algorithms, and handling edge cases', icon: '🧠' },
+    { key: 'communication', label: 'Communication', desc: 'Clarity in explaining thought process', icon: '🗣️' },
+    { key: 'codeQuality', label: 'Code Quality', desc: 'Cleanliness, readability, and naming conventions', icon: '✨' },
   ] as const;
 
   const allRated = Object.values(scores).every(s => s > 0);
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white p-12 overflow-auto">
-      <div className="max-w-3xl mx-auto bg-gray-900/50 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold mb-2">Evaluate Candidate</h1>
-        <p className="text-gray-400 mb-8 pb-6 border-b border-gray-800">Please provide constructive feedback for the candidate's performance in the Live Coding Arena.</p>
+    <div style={{ minHeight: '100dvh', background: '#08080f', color: 'white', padding: '48px 24px', overflow: 'auto' }}>
+      <div className="bg-mesh" />
+      <div className="glass fade-in-up" style={{ maxWidth: 700, margin: '0 auto', padding: 40, position: 'relative', zIndex: 1 }}>
+        <h1 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: 6, letterSpacing: '-0.03em' }}>Evaluate Candidate</h1>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem', marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
+          Please provide constructive feedback for the candidate&apos;s performance in the Live Coding Arena.
+        </p>
 
-        <div className="space-y-8 mb-10">
-          {categories.map(({ key, label, desc }) => (
-            <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginBottom: 36 }}>
+          {categories.map(({ key, label, desc, icon }) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 className="text-lg font-medium text-gray-200">{label}</h3>
-                <p className="text-sm text-gray-500">{desc}</p>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 2 }}>{icon} {label}</h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-subtle)' }}>{desc}</p>
               </div>
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 6 }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     onClick={() => handleStarClick(key, star)}
-                    className="focus:outline-none transform transition-transform hover:scale-110"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 28,
+                      transition: 'transform 0.15s',
+                      filter: scores[key] >= star ? 'none' : 'grayscale(1) opacity(0.3)',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
+                    onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                   >
-                    <Star 
-                      className={`w-8 h-8 ${scores[key] >= star ? 'fill-yellow-500 text-yellow-500' : 'text-gray-700'}`} 
-                    />
+                    ⭐
                   </button>
                 ))}
               </div>
@@ -112,22 +121,26 @@ export default function FeedbackScreen({ isInterviewer, onSubmitFeedback, onExit
           ))}
         </div>
 
-        <div className="mb-8">
-          <label className="block text-lg font-medium text-gray-200 mb-2">Written Feedback</label>
-          <p className="text-sm text-gray-500 mb-4">Provide detailed notes on strengths and areas for improvement.</p>
+        <div style={{ marginBottom: 32 }}>
+          <label className="label">Written Feedback</label>
+          <p style={{ fontSize: '0.78rem', color: 'var(--color-text-subtle)', marginBottom: 10 }}>
+            Provide detailed notes on strengths and areas for improvement.
+          </p>
           <textarea
             value={writtenFeedback}
             onChange={(e) => setWrittenFeedback(e.target.value)}
-            className="w-full h-40 bg-gray-950 border border-gray-800 rounded-xl p-4 text-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
+            className="input"
+            style={{ width: '100%', height: 140, resize: 'none' }}
             placeholder="The candidate did a great job explaining their approach..."
           />
         </div>
 
-        <div className="flex justify-end pt-6 border-t border-gray-800">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 20, borderTop: '1px solid var(--color-border)' }}>
           <button
             onClick={handleSubmit}
             disabled={!allRated}
-            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all"
+            className="btn-primary"
+            style={{ padding: '13px 32px', fontSize: '0.9rem' }}
           >
             Submit Evaluation
           </button>

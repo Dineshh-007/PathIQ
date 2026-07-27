@@ -1,46 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { CodingRoom, ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { WebRTCProvider } from '../../../components/coding/WebRTCProvider';
 import ArenaLobby from '../../../components/coding/ArenaLobby';
 import ArenaRoom from '../../../components/coding/ArenaRoom';
 import FeedbackScreen from '../../../components/coding/FeedbackScreen';
-// import { useAuthStore } from '../../../store/useAuthStore'; // Mocked for now
+import { useAuthStore } from '../../../store/authStore';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 export default function ArenaClient({ roomId }: { roomId: string }) {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [room, setRoom] = useState<CodingRoom | null>(null);
   const [error, setError] = useState('');
-  
-  // Replace with actual auth store usage
-  // const user = useAuthStore(state => state.user);
-  // For now, we mock the user based on local storage or hardcode for demo if not available.
-  const [userId, setUserId] = useState('');
-  const [userName, setUserName] = useState('');
+
+  // Guard: redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated()) router.replace('/login');
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
-    // Quick mock for dev: grab from local storage or prompt
-    let id = localStorage.getItem('userId');
-    let name = localStorage.getItem('userName');
-    if (!id) {
-      id = 'user_' + Math.random().toString(36).substr(2, 9);
-      name = 'Dev User ' + id.substring(5, 9);
-      localStorage.setItem('userId', id);
-      localStorage.setItem('userName', name);
-    }
-    setUserId(id || '');
-    setUserName(name || '');
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
+    if (!user) return;
 
     const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-      query: { userId },
+      query: { userId: user.id },
       withCredentials: true
     });
 
@@ -61,7 +49,7 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
     return () => {
       newSocket.disconnect();
     };
-  }, [roomId, userId]);
+  }, [roomId, user]);
 
   const handleProposeQuestions = (questionIds: string[]) => {
     socket?.emit('coding:propose_questions', { questionIds });
@@ -85,37 +73,39 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
 
   const handleSubmitFeedback = (feedback: any) => {
     socket?.emit('coding:submit_feedback', feedback);
-    // Optionally refetch room state or show completion
   };
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#111111] text-red-400">
-        <div className="bg-red-900/20 p-6 rounded-lg border border-red-900">
-          <h2 className="text-xl font-bold mb-2">Error</h2>
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#08080f', color: '#f87171' }}>
+        <div style={{ background: 'rgba(239,68,68,0.1)', padding: 32, borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', maxWidth: 500, textAlign: 'center' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 8 }}>Error</h2>
           <p>{error}</p>
         </div>
       </div>
     );
   }
 
-  if (!room || !userId) {
+  if (!room || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#111111] text-white">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#08080f', color: 'white' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spin" style={{ width: 40, height: 40, border: '3px solid rgba(99,102,241,0.3)', borderTopColor: '#6366f1', borderRadius: '50%', margin: '0 auto 16px' }} />
+          <p style={{ color: 'var(--color-text-muted)' }}>Connecting to Arena...</p>
+        </div>
       </div>
     );
   }
 
   const session = room.sessions?.[0];
-  const isInterviewer = userId === room.interviewerId;
+  const isInterviewer = user.id === room.interviewerId;
 
   return (
-    <WebRTCProvider socket={socket} userId={userId}>
+    <WebRTCProvider socket={socket} userId={user.id}>
       {!session || session.phase === 'proposing' || session.phase === 'selecting' ? (
         <ArenaLobby
           room={room}
-          userId={userId}
+          userId={user.id}
           onProposeQuestions={handleProposeQuestions}
           onSelectQuestion={handleSelectQuestion}
           onJoinSession={() => {}}
@@ -123,8 +113,8 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
       ) : session.phase === 'coding' ? (
         <ArenaRoom
           room={room}
-          userId={userId}
-          userName={userName}
+          userId={user.id}
+          userName={user.name}
           onExecuteCode={handleExecuteCode}
           onFinishSession={() => socket?.emit('coding:end_session')} 
         />
@@ -132,7 +122,7 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
         <FeedbackScreen
           isInterviewer={isInterviewer}
           onSubmitFeedback={handleSubmitFeedback}
-          onExit={() => window.location.href = '/dashboard'}
+          onExit={() => router.push('/dashboard')}
         />
       )}
     </WebRTCProvider>
