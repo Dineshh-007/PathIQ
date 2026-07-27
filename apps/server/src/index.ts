@@ -21,6 +21,48 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 async function bootstrap() {
+  // ─── Sync database schema on startup ────────────────────────────────────────
+  console.log('📦 Syncing database schema...');
+  try {
+    const output = execSync('npx prisma db push --accept-data-loss --skip-generate', {
+      encoding: 'utf-8',
+      timeout: 30000,
+      env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL }
+    });
+    console.log('✅ Database schema synced');
+  } catch (err: any) {
+    console.error('⚠️ prisma db push failed:', err.stderr || err.message);
+    // Don't crash — the tables may already exist
+  }
+
+  // ─── Seed coding questions if missing ───────────────────────────────────────
+  try {
+    const count = await prisma.codingQuestion.count();
+    if (count === 0) {
+      console.log('🌱 Seeding coding questions...');
+      const questions = [
+        { title: 'Two Sum', description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.', category: 'Arrays', difficulty: 'medium', testCases: [{ input: '[2,7,11,15]\n9', output: '[0,1]' }, { input: '[3,2,4]\n6', output: '[1,2]' }] },
+        { title: 'Valid Parentheses', description: 'Given a string s containing just the characters (, ), {, }, [ and ], determine if the input string is valid.\n\n1. Open brackets must be closed by the same type.\n2. Open brackets must be closed in the correct order.', category: 'Strings', difficulty: 'medium', testCases: [{ input: '"()"', output: 'true' }, { input: '"(]"', output: 'false' }] },
+        { title: 'Merge Intervals', description: 'Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals and return non-overlapping intervals that cover all intervals.', category: 'Arrays', difficulty: 'medium', testCases: [{ input: '[[1,3],[2,6],[8,10],[15,18]]', output: '[[1,6],[8,10],[15,18]]' }] },
+        { title: 'Longest Substring Without Repeating Characters', description: 'Given a string s, find the length of the longest substring without repeating characters.', category: 'Strings', difficulty: 'medium', testCases: [{ input: '"abcabcbb"', output: '3' }, { input: '"bbbbb"', output: '1' }] },
+        { title: 'LRU Cache', description: 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.\n\nImplement LRUCache with get(key) and put(key, value) in O(1) time.', category: 'System Design', difficulty: 'hard', testCases: [] },
+        { title: 'Reverse Linked List', description: 'Given the head of a singly linked list, reverse the list, and return the reversed list.', category: 'Linked Lists', difficulty: 'medium', testCases: [{ input: '[1,2,3,4,5]', output: '[5,4,3,2,1]' }] },
+        { title: 'Binary Tree Level Order Traversal', description: 'Given the root of a binary tree, return the level order traversal of its nodes values (left to right, level by level).', category: 'Trees', difficulty: 'medium', testCases: [{ input: '[3,9,20,null,null,15,7]', output: '[[3],[9,20],[15,7]]' }] },
+        { title: 'Coin Change', description: 'Given an integer array coins and an integer amount, return the fewest coins needed to make up that amount. Return -1 if impossible.', category: 'Dynamic Programming', difficulty: 'hard', testCases: [{ input: '[1,5,11]\n15', output: '3' }] },
+        { title: 'Product of Array Except Self', description: 'Given an integer array nums, return an array where answer[i] equals the product of all elements except nums[i]. Must run in O(n) without division.', category: 'Arrays', difficulty: 'medium', testCases: [{ input: '[1,2,3,4]', output: '[24,12,8,6]' }] },
+        { title: 'Number of Islands', description: 'Given an m x n 2D grid of "1"s (land) and "0"s (water), return the number of islands. An island is formed by connecting adjacent lands horizontally or vertically.', category: 'Graphs', difficulty: 'hard', testCases: [{ input: '[["1","1","0"],["1","0","0"],["0","0","1"]]', output: '2' }] },
+      ];
+      for (const q of questions) {
+        await prisma.codingQuestion.create({ data: { title: q.title, description: q.description, category: q.category, difficulty: q.difficulty, testCases: q.testCases as any } });
+      }
+      console.log(`✅ Seeded ${questions.length} coding questions`);
+    } else {
+      console.log(`✅ Coding questions already exist (${count})`);
+    }
+  } catch (err: any) {
+    console.error('⚠️ Seed check failed (table may not exist yet):', err.message);
+  }
+
   const app = Fastify({ logger: process.env.NODE_ENV === 'development' });
 
   // ─── CORS ──────────────────────────────────────────────────────────────────
