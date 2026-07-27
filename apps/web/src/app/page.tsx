@@ -10,7 +10,10 @@ export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // mounted prevents hydration mismatch: localStorage is only available on the client
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Animate background particles
   useEffect(() => {

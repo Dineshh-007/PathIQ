@@ -68,7 +68,13 @@ export default function DashboardPage() {
     '🏆 The award votes are used as tiebreakers for equal scores.',
     '🤖 AI coaching activates after the session. No AI during the interview.',
   ];
-  const randomTip = tips[Math.floor(Math.random() * tips.length)];
+  const [randomTip, setRandomTip] = useState(tips[0]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setRandomTip(tips[Math.floor(Math.random() * tips.length)]);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!user) return null;
 

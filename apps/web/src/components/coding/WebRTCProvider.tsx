@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 
@@ -40,12 +40,54 @@ export function WebRTCProvider({ children, socket, userId }: WebRTCProviderProps
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const activeTargetId = useRef<string | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  const endCall = useCallback(() => {
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+    setRemoteStream(null);
+    setIsCalling(false);
+    activeTargetId.current = null;
+  }, []);
+
+  const createPeerConnection = useCallback((targetUserId: string) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    peerConnection.current = pc;
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    }
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socket) {
+        socket.emit('webrtc:ice_candidate', { targetUserId, candidate: event.candidate });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      setRemoteStream(event.streams[0]);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        endCall();
+      }
+    };
+
+    return pc;
+  }, [localStream, socket, endCall]);
 
   useEffect(() => {
     // Request media devices on mount
     const initMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStreamRef.current = stream;
         setLocalStream(stream);
       } catch (err) {
         console.error('Failed to access media devices', err);
@@ -55,9 +97,9 @@ export function WebRTCProvider({ children, socket, userId }: WebRTCProviderProps
 
     return () => {
       endCall();
-      localStream?.getTracks().forEach(track => track.stop());
+      localStreamRef.current?.getTracks().forEach(track => track.stop());
     };
-  }, []);
+  }, [endCall]);
 
   useEffect(() => {
     if (!socket) return;
@@ -94,37 +136,7 @@ export function WebRTCProvider({ children, socket, userId }: WebRTCProviderProps
       socket.off('webrtc:answer');
       socket.off('webrtc:ice_candidate');
     };
-  }, [socket, localStream]);
-
-  const createPeerConnection = (targetUserId: string) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-
-    peerConnection.current = pc;
-
-    if (localStream) {
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    }
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socket) {
-        socket.emit('webrtc:ice_candidate', { targetUserId, candidate: event.candidate });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-        endCall();
-      }
-    };
-
-    return pc;
-  };
+  }, [socket, localStream, createPeerConnection]);
 
   const startCall = async (targetUserId: string) => {
     if (!localStream || !socket) return;
@@ -136,16 +148,6 @@ export function WebRTCProvider({ children, socket, userId }: WebRTCProviderProps
     await pc.setLocalDescription(offer);
     
     socket.emit('webrtc:offer', { targetUserId, offer });
-  };
-
-  const endCall = () => {
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
-    }
-    setRemoteStream(null);
-    setIsCalling(false);
-    activeTargetId.current = null;
   };
 
   const toggleVideo = () => {

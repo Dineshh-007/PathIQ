@@ -8,6 +8,9 @@ vi.mock('../src/config/database', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
     },
+    sessionQuestion: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

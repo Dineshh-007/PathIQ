@@ -53,9 +53,10 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
       setError('Failed to connect to real-time server. Please check your internet connection or try refreshing.');
     });
 
-    setSocket(newSocket);
+    const timer = setTimeout(() => setSocket(newSocket), 0);
 
     return () => {
+      clearTimeout(timer);
       newSocket.disconnect();
     };
   }, [roomId, user]);
