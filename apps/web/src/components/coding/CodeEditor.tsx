@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import { MonacoBinding } from '../../utils/y-monaco';
+import { MonacoBinding } from '@/utils/y-monaco';
 
 interface CodeEditorProps {
   roomId: string;
@@ -15,13 +15,21 @@ interface CodeEditorProps {
   onCodeChange?: (code: string) => void;
 }
 
-const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:3001/yjs';
+function getWebsocketUrl() {
+  if (process.env.NEXT_PUBLIC_WEBSOCKET_URL) return process.env.NEXT_PUBLIC_WEBSOCKET_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (baseUrl) {
+    const wsUrl = baseUrl.replace(/^http/, 'ws');
+    return `${wsUrl.replace(/\/$/, '')}/yjs`;
+  }
+  return 'ws://localhost:3001/yjs';
+}
 
 export default function CodeEditor({
   roomId,
   userId,
   userName,
-  userColor = '#FF0000',
+  userColor = '#3b82f6',
   language,
   onCodeChange
 }: CodeEditorProps) {
@@ -31,21 +39,18 @@ export default function CodeEditor({
   const bindingRef = useRef<MonacoBinding | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize Yjs and bindings when editor is ready
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
 
-    // A Yjs document holds the shared data
     const ydoc = new Y.Doc();
+    const wsUrl = getWebsocketUrl();
     
-    // Connect to our backend y-websocket server
     const provider = new WebsocketProvider(
-      WEBSOCKET_URL,
+      wsUrl,
       `coding-room-${roomId}`,
       ydoc
     );
 
-    // Set awareness (cursor and user details)
     provider.awareness.setLocalStateField('user', {
       name: userName,
       color: userColor
@@ -55,10 +60,8 @@ export default function CodeEditor({
       setIsConnected(event.status === 'connected');
     });
 
-    // The shared text type
     const ytext = ydoc.getText('monaco');
 
-    // Bind Yjs to Monaco
     const binding = new MonacoBinding(
       ytext,
       editor.getModel(),
@@ -69,7 +72,6 @@ export default function CodeEditor({
     providerRef.current = provider;
     bindingRef.current = binding;
 
-    // Trigger local onChange
     ytext.observe(() => {
       if (onCodeChange) {
         onCodeChange(ytext.toString());
@@ -85,12 +87,12 @@ export default function CodeEditor({
   }, []);
 
   return (
-    <div className="w-full h-full relative border border-gray-700 rounded-lg overflow-hidden bg-[#1e1e1e]">
+    <div style={{ width: '100%', height: '100%', position: 'relative', background: '#1e1e1e', overflow: 'hidden' }}>
       {/* Connection Status indicator */}
-      <div className="absolute top-2 right-4 z-10 flex items-center gap-2 text-xs">
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className="text-gray-400 font-mono">
-          {isConnected ? 'Sync: Connected' : 'Sync: Disconnected'}
+      <div style={{ position: 'absolute', top: 10, right: 16, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 6px #10b981' : '0 0 6px #ef4444' }} />
+        <span style={{ color: 'var(--color-text-subtle)', fontFamily: 'monospace' }}>
+          {isConnected ? 'Yjs Sync: Live' : 'Yjs Sync: Connecting...'}
         </span>
       </div>
 
@@ -104,11 +106,11 @@ export default function CodeEditor({
           wordWrap: 'on',
           scrollBeyondLastLine: false,
           automaticLayout: true,
-          padding: { top: 32 }
+          padding: { top: 36 }
         }}
         onMount={handleEditorDidMount}
         loading={
-          <div className="flex h-full items-center justify-center text-gray-500">
+          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-subtle)', fontSize: '0.9rem' }}>
             Loading Editor...
           </div>
         }

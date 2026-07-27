@@ -1,15 +1,26 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../config/database';
+import { authenticate } from '../middleware/auth';
 
 export default async function codingRoutes(app: FastifyInstance) {
   // Create a new coding room
-  app.post('/api/coding/rooms', async (req, reply) => {
+  app.post('/api/coding/rooms', { preHandler: [authenticate] }, async (req, reply) => {
     try {
-      const { interviewerId } = req.body as { interviewerId: string };
+      const user = (req as any).user;
       
+      // Guard: verify the user from the JWT still exists in DB.
+      // Handles stale tokens (e.g. DB was reset in dev, or account deleted).
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+      if (!dbUser) {
+        return reply.status(401).send({ error: 'Session expired — please log in again' });
+      }
+
+      const { interviewerId } = (req.body || {}) as { interviewerId?: string };
+      const validInterviewerId = interviewerId || user.id;
+
       const room = await prisma.codingRoom.create({
         data: {
-          interviewerId,
+          interviewerId: validInterviewerId,
           status: 'waiting',
           sessions: {
             create: {
@@ -32,14 +43,24 @@ export default async function codingRoutes(app: FastifyInstance) {
   });
 
   // Get a coding room
-  app.get('/api/coding/rooms/:id', async (req, reply) => {
+  app.get('/api/coding/rooms/:id', { preHandler: [authenticate] }, async (req, reply) => {
     try {
+      const user = (req as any).user;
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+      if (!dbUser) {
+        return reply.status(401).send({ error: 'Session expired — please log in again' });
+      }
+
       const { id } = req.params as { id: string };
       
       const room = await prisma.codingRoom.findUnique({
         where: { id },
         include: {
-          sessions: true,
+          sessions: {
+            include: {
+              question: true
+            }
+          },
           interviewer: { select: { id: true, name: true, avatarUrl: true } },
           candidate: { select: { id: true, name: true, avatarUrl: true } },
         }
@@ -76,7 +97,7 @@ export default async function codingRoutes(app: FastifyInstance) {
   });
 
   // Execute code via Piston API (Free, secure Docker execution)
-  app.post('/api/coding/execute', async (req, reply) => {
+  app.post('/api/coding/execute', { preHandler: [authenticate] }, async (req, reply) => {
     try {
       const { code, language } = req.body as { code: string; language: string };
       

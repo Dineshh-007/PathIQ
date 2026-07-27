@@ -4,7 +4,7 @@ import { useState } from 'react';
 import CodeEditor from './CodeEditor';
 import ExecutionPanel from './ExecutionPanel';
 import VideoOverlay from './VideoOverlay';
-import { CodingRoom, CodingQuestion, CodingSession } from '@peerprep/shared-types';
+import { CodingRoom, CodingQuestion } from '@peerprep/shared-types';
 
 interface ArenaRoomProps {
   room: CodingRoom;
@@ -16,7 +16,7 @@ interface ArenaRoomProps {
 
 export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFinishSession }: ArenaRoomProps) {
   const session = room.sessions?.[0];
-  const question = (session as any)?.question as CodingQuestion; // The populated question
+  const question = (session as any)?.question as CodingQuestion | undefined; // The populated question
   const isInterviewer = userId === room.interviewerId;
 
   const [code, setCode] = useState(session?.codeSnapshot || '');
@@ -26,91 +26,108 @@ export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFin
     ? (room as any).candidate?.name || 'Candidate' 
     : (room as any).interviewer?.name || 'Interviewer';
 
+  const descriptionText = question?.description || 'Loading challenge description...';
+
   return (
-    <div className="flex h-screen bg-[#111111] text-gray-200 overflow-hidden font-sans">
+    <div style={{ display: 'flex', height: '100dvh', background: '#08080f', color: '#e2e8f0', overflow: 'hidden', fontFamily: 'var(--font-sans, sans-serif)' }}>
       
       {/* Left Sidebar: Problem Description */}
-      <div className="w-[30%] flex flex-col border-r border-gray-800 bg-[#1a1a1a]">
-        <div className="p-4 border-b border-gray-800 bg-[#222222] flex items-center justify-between">
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
+      <div style={{ width: '32%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,15,25,0.6)' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(20,20,35,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 className="text-gradient" style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
             {question?.title || 'Coding Challenge'}
           </h2>
           {isInterviewer && (
             <button 
               onClick={onFinishSession}
-              className="px-3 py-1 bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-600/50 rounded-md text-sm font-medium transition-colors"
+              style={{
+                padding: '6px 14px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
             >
               End Session
             </button>
           )}
         </div>
         
-        <div className="flex-1 overflow-auto p-6">
-          <div className="mb-6 flex gap-2">
-            <span className={`text-xs px-2 py-1 rounded border ${
-              question?.difficulty === 'easy' ? 'bg-green-900/30 border-green-700 text-green-400' :
-              question?.difficulty === 'medium' ? 'bg-yellow-900/30 border-yellow-700 text-yellow-400' :
-              'bg-red-900/30 border-red-700 text-red-400'
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
+          <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
+            <span className={`badge ${
+              question?.difficulty === 'easy' ? 'badge-green' :
+              question?.difficulty === 'medium' ? 'badge-yellow' : 'badge-red'
             }`}>
-              {question?.difficulty || 'Medium'}
+              {(question?.difficulty || 'medium').toUpperCase()}
             </span>
-            <span className="text-xs px-2 py-1 rounded border bg-gray-800 border-gray-700 text-gray-400">
+            <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-muted)', border: '1px solid rgba(255,255,255,0.1)' }}>
               {question?.category || 'Algorithm'}
             </span>
           </div>
 
-          <div className="prose prose-invert prose-sm max-w-none">
-            {question?.description.split('\n').map((para, i) => (
-              <p key={i} className="mb-4 text-gray-300 leading-relaxed">{para}</p>
+          <div style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'var(--color-text)' }}>
+            {descriptionText.split('\n').map((para, i) => (
+              <p key={i} style={{ marginBottom: 16 }}>{para}</p>
             ))}
           </div>
 
-          <div className="mt-8 space-y-4">
-            <h3 className="font-semibold text-gray-400 uppercase tracking-wider text-sm border-b border-gray-800 pb-2">Examples</h3>
-            {question?.testCases?.filter(tc => !tc.hidden).map((tc, i) => (
-              <div key={i} className="bg-black/40 border border-gray-800 rounded-lg p-4 font-mono text-sm">
-                <div className="mb-2"><span className="text-gray-500 select-none">Input: </span><span className="text-blue-300">{tc.input}</span></div>
-                <div><span className="text-gray-500 select-none">Output: </span><span className="text-green-300">{tc.output}</span></div>
+          {question?.testCases && question.testCases.filter(tc => !tc.hidden).length > 0 && (
+            <div style={{ marginTop: 32 }}>
+              <h3 style={{ fontWeight: 700, color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 8, marginBottom: 16 }}>
+                Examples
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {question.testCases.filter(tc => !tc.hidden).map((tc, i) => (
+                  <div key={i} style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                    <div style={{ marginBottom: 6 }}><span style={{ color: 'var(--color-text-subtle)', userSelect: 'none' }}>Input: </span><span style={{ color: '#60a5fa' }}>{tc.input}</span></div>
+                    <div><span style={{ color: 'var(--color-text-subtle)', userSelect: 'none' }}>Output: </span><span style={{ color: '#34d399' }}>{tc.output}</span></div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main Workspace: Editor and Terminal */}
-      <div className="w-[70%] flex flex-col h-full">
+      <div style={{ width: '68%', display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Editor Header */}
-        <div className="h-12 border-b border-gray-800 bg-[#1e1e1e] flex items-center px-4 justify-between">
-          <div className="flex items-center gap-4">
+        <div style={{ height: 48, borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(18,18,28,0.9)', display: 'flex', alignItems: 'center', padding: '0 20px', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <select 
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="bg-[#2d2d2d] border border-gray-700 rounded text-sm px-2 py-1 text-gray-300 outline-none focus:border-blue-500"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, fontSize: '0.85rem', padding: '4px 10px', color: '#e2e8f0', outline: 'none', cursor: 'pointer' }}
             >
-              <option value="javascript">JavaScript (Node.js)</option>
-              <option value="python">Python 3</option>
-              <option value="java">Java</option>
-              <option value="cpp">C++</option>
+              <option value="javascript" style={{ background: '#111' }}>JavaScript (Node.js)</option>
+              <option value="python" style={{ background: '#111' }}>Python 3</option>
+              <option value="java" style={{ background: '#111' }}>Java</option>
+              <option value="cpp" style={{ background: '#111' }}>C++</option>
             </select>
           </div>
-          <div className="text-xs text-gray-500 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Live
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} /> Live Collaboration
           </div>
         </div>
 
         {/* Resizable vertical split for Editor and Terminal */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-[3] relative">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ flex: 3, position: 'relative', minHeight: 0 }}>
             <CodeEditor
               roomId={room.id}
               userId={userId}
               userName={userName}
-              userColor={isInterviewer ? '#3b82f6' : '#10b981'} // Blue for interviewer, Green for candidate
+              userColor={isInterviewer ? '#3b82f6' : '#10b981'}
               language={language}
               onCodeChange={setCode}
             />
           </div>
-          <div className="flex-[1] min-h-0 border-t border-gray-800">
+          <div style={{ flex: 1, minHeight: 180, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <ExecutionPanel
               code={code}
               language={language}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CodingQuestion, CodingRoom } from '@peerprep/shared-types';
-import axios from 'axios';
+import { api } from '@/services/api';
 
 interface ArenaLobbyProps {
   room: CodingRoom;
@@ -24,7 +24,7 @@ export default function ArenaLobby({ room, userId, onProposeQuestions, onSelectQ
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/coding/questions`);
+        const res = await api.get('/coding/questions');
         setQuestions(res.data.questions);
       } catch (err) {
         console.error('Failed to load questions', err);
