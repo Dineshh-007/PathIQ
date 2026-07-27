@@ -63,7 +63,10 @@ async function bootstrap() {
     console.error('⚠️ Seed check failed (table may not exist yet):', err.message);
   }
 
-  const app = Fastify({ logger: process.env.NODE_ENV === 'development' });
+  const app = Fastify({ 
+    logger: process.env.NODE_ENV === 'development',
+    trustProxy: true,
+  });
 
   // ─── CORS ──────────────────────────────────────────────────────────────────
   await app.register(cors, {
