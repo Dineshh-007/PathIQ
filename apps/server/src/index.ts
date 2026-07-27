@@ -135,7 +135,7 @@ async function bootstrap() {
       methods: ['GET', 'POST', 'OPTIONS'],
       credentials: true,
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
   });
 
   // Setup Yjs Native WebSocket Server for real-time CRDT syncing

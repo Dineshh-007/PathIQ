@@ -30,7 +30,7 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
     const newSocket = io(socketUrl, {
       query: { userId: user.id },
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
