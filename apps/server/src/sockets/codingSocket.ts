@@ -2,22 +2,28 @@ import { Server as IoServer, Socket } from 'socket.io';
 import { ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { prisma } from '../config/database';
 
+import { verifySocketToken } from '../middleware/auth';
+
 const fullRoomInclude = {
   sessions: {
     include: {
       question: true
     }
   },
-  interviewer: true,
-  candidate: true,
+  interviewer: { select: { id: true, name: true, avatarUrl: true } },
+  candidate: { select: { id: true, name: true, avatarUrl: true } },
 };
 
 export function registerCodingSocket(io: IoServer) {
   io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
     // Join a coding room
-    socket.on('coding:join_room', async ({ roomId }: { roomId: string }) => {
+    socket.on('coding:join_room', async ({ roomId, userId: clientUserId, token }: { roomId: string; userId?: string; token?: string }) => {
       try {
         socket.join(`coding:${roomId}`);
+        const userId = getSocketUserId(socket, clientUserId, token);
+        if (userId) {
+          socket.join(`user:${userId}`);
+        }
         
         let room = await prisma.codingRoom.findUnique({
           where: { id: roomId },
@@ -30,13 +36,30 @@ export function registerCodingSocket(io: IoServer) {
         }
 
         // Assign candidate if missing and joining user is not interviewer
-        const userId = getSocketUserId(socket);
         if (!room.candidateId && room.interviewerId !== userId && userId) {
-          room = await prisma.codingRoom.update({
-            where: { id: roomId },
-            data: { candidateId: userId },
-            include: fullRoomInclude
-          });
+          try {
+            // Verify user actually exists in database before updating candidateId to avoid FK violation
+            const userExists = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { id: true }
+            });
+            
+            if (userExists) {
+              room = await prisma.codingRoom.update({
+                where: { id: roomId },
+                data: { candidateId: userId },
+                include: fullRoomInclude
+              });
+            } else {
+              console.warn(`[coding:join_room] User ${userId} not found in database. Skipping candidate assignment.`);
+            }
+          } catch (updateErr) {
+            console.error('Error assigning candidateId in coding room:', updateErr);
+            room = await prisma.codingRoom.findUnique({
+              where: { id: roomId },
+              include: fullRoomInclude
+            });
+          }
         }
 
         socket.emit('coding:room_state', room as any);
@@ -154,6 +177,17 @@ export function registerCodingSocket(io: IoServer) {
   });
 }
 
-function getSocketUserId(socket: any): string {
-  return (socket as any)._userId ?? socket.handshake.query.userId ?? '';
+function getSocketUserId(socket: any, fallbackUserId?: string, token?: string): string {
+  if (token) {
+    try {
+      const payload = verifySocketToken(token);
+      if (payload?.id) {
+        (socket as any)._userId = payload.id;
+        return payload.id;
+      }
+    } catch {
+      // ignore token verification error
+    }
+  }
+  return (socket as any)._userId ?? fallbackUserId ?? socket.handshake.query.userId ?? '';
 }

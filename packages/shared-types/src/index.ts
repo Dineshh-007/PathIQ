@@ -197,7 +197,7 @@ export interface ClientToServerEvents {
 
   // 1v1 Coding Arena
   'coding:create_room': (data: { candidateId: string }) => void;
-  'coding:join_room': (data: { roomId: string }) => void;
+  'coding:join_room': (data: { roomId: string; userId?: string; token?: string }) => void;
   'coding:propose_questions': (data: { questionIds: string[] }) => void;
   'coding:select_question': (data: { questionId: string }) => void;
   'coding:end_session': () => void;

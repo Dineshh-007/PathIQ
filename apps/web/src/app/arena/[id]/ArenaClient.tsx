@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { CodingRoom, ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { WebRTCProvider } from '@/components/coding/WebRTCProvider';
 import ArenaLobby from '@/components/coding/ArenaLobby';
 import ArenaRoom from '@/components/coding/ArenaRoom';
 import FeedbackScreen from '@/components/coding/FeedbackScreen';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/services/api';
+import { api, arenaApi } from '@/services/api';
+import { connectSocket } from '@/services/socket';
 
 export default function ArenaClient({ roomId }: { roomId: string }) {
   const router = useRouter();
@@ -26,40 +27,72 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (!user) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const newSocket = io(socketUrl, {
-      query: { userId: user.id },
-      withCredentials: true,
-      transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-    });
+    let isMounted = true;
 
-    newSocket.on('connect', () => {
-      newSocket.emit('coding:join_room', { roomId });
-    });
+    const initArena = async () => {
+      try {
+        const { data } = await arenaApi.get(roomId);
+        if (!isMounted) return;
+        setRoom(data.room);
+        setError('');
 
-    newSocket.on('coding:room_state', (updatedRoom: CodingRoom) => {
-      setRoom(updatedRoom);
-    });
+        const s = connectSocket({ userId: user.id });
 
-    newSocket.on('error', (msg) => {
-      setError(msg);
-    });
+        const onConnect = () => {
+          s.emit('coding:join_room', { roomId, userId: user.id, token: useAuthStore.getState().accessToken || undefined });
+        };
 
-    newSocket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err);
-      setError('Failed to connect to real-time server. Please check your internet connection or try refreshing.');
-    });
+        const onRoomState = (updatedRoom: CodingRoom) => {
+          if (isMounted) {
+            setRoom(updatedRoom);
+            setError('');
+          }
+        };
 
-    const timer = setTimeout(() => setSocket(newSocket), 0);
+        const onError = (msg: string) => {
+          if (isMounted) setError(msg);
+        };
+
+        const onConnectError = (err: any) => {
+          console.error('Socket connection error:', err);
+          if (isMounted) {
+            setError('Failed to connect to real-time server. Please check your internet connection or try refreshing.');
+          }
+        };
+
+        s.on('connect', onConnect);
+        s.on('coding:room_state', onRoomState);
+        s.on('error', onError);
+        s.on('connect_error', onConnectError);
+
+        if (s.connected) {
+          onConnect();
+        }
+
+        if (isMounted) {
+          setSocket(s);
+        }
+      } catch (err: any) {
+        console.error('Error initializing arena room via API:', err);
+        if (isMounted) {
+          setError(err.response?.data?.error || err.message || 'Failed to load coding room');
+        }
+      }
+    };
+
+    initArena();
 
     return () => {
-      clearTimeout(timer);
-      newSocket.disconnect();
+      isMounted = false;
+      if (socket) {
+        socket.off('connect');
+        socket.off('coding:room_state');
+        socket.off('error');
+        socket.off('connect_error');
+      }
     };
   }, [roomId, user]);
+
 
   const handleProposeQuestions = (questionIds: string[]) => {
     socket?.emit('coding:propose_questions', { questionIds });

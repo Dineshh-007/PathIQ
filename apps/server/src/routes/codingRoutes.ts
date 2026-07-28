@@ -52,7 +52,10 @@ export default async function codingRoutes(app: FastifyInstance) {
       }
 
       const { id } = req.params as { id: string };
-      
+      if (!id) {
+        return reply.status(400).send({ error: 'Room ID is required' });
+      }
+
       const room = await prisma.codingRoom.findUnique({
         where: { id },
         include: {
@@ -70,9 +73,10 @@ export default async function codingRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Coding room not found' });
       }
 
-      return { room };
+      return reply.send({ room });
     } catch (err: any) {
-      reply.status(500).send({ error: err.message });
+      console.error('Error in GET /api/coding/rooms/:id:', err);
+      return reply.status(500).send({ error: err.message || 'Failed to fetch coding room' });
     }
   });
 

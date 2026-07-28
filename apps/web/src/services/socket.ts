@@ -20,8 +20,11 @@ export function getSocket(): AppSocket {
   return socket;
 }
 
-export function connectSocket() {
+export function connectSocket(query?: Record<string, any>) {
   const s = getSocket();
+  if (query) {
+    s.io.opts.query = { ...s.io.opts.query, ...query };
+  }
   if (!s.connected) s.connect();
   return s;
 }
