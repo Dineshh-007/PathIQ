@@ -16,102 +16,127 @@ export function registerCodingSocket(io: IoServer) {
   io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
     // Join a coding room
     socket.on('coding:join_room', async ({ roomId }: { roomId: string }) => {
-      socket.join(`coding:${roomId}`);
-      
-      let room = await prisma.codingRoom.findUnique({
-        where: { id: roomId },
-        include: fullRoomInclude
-      });
-      
-      if (!room) {
-        socket.emit('error', 'Arena room not found or no longer active');
-        return;
-      }
-
-      // Assign candidate if missing and joining user is not interviewer
-      const userId = getSocketUserId(socket);
-      if (!room.candidateId && room.interviewerId !== userId && userId) {
-        room = await prisma.codingRoom.update({
+      try {
+        socket.join(`coding:${roomId}`);
+        
+        let room = await prisma.codingRoom.findUnique({
           where: { id: roomId },
-          data: { candidateId: userId },
           include: fullRoomInclude
         });
-      }
+        
+        if (!room) {
+          socket.emit('error', 'Arena room not found or no longer active');
+          return;
+        }
 
-      socket.emit('coding:room_state', room as any);
-      io.to(`coding:${roomId}`).emit('coding:room_state', room as any);
+        // Assign candidate if missing and joining user is not interviewer
+        const userId = getSocketUserId(socket);
+        if (!room.candidateId && room.interviewerId !== userId && userId) {
+          room = await prisma.codingRoom.update({
+            where: { id: roomId },
+            data: { candidateId: userId },
+            include: fullRoomInclude
+          });
+        }
+
+        socket.emit('coding:room_state', room as any);
+        io.to(`coding:${roomId}`).emit('coding:room_state', room as any);
+      } catch (err) {
+        console.error('Error joining coding room:', err);
+        socket.emit('error', 'Failed to join coding room');
+      }
     });
 
     // State Transitions
     socket.on('coding:propose_questions', async ({ questionIds }: { questionIds: string[] }) => {
-      const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
-      if (!rooms.length) return;
-      const roomId = rooms[0].split(':')[1];
+      try {
+        const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
+        if (!rooms.length) return;
+        const roomId = rooms[0].split(':')[1];
 
-      const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
-      if (!roomSession || !roomSession.sessions[0]) return;
+        const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
+        if (!roomSession || !roomSession.sessions[0]) return;
 
-      await prisma.codingSession.update({
-        where: { id: roomSession.sessions[0].id },
-        data: { proposedQIds: questionIds, phase: 'selecting' }
-      });
+        await prisma.codingSession.update({
+          where: { id: roomSession.sessions[0].id },
+          data: { proposedQIds: questionIds, phase: 'selecting' }
+        });
 
-      const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
-      io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+        const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
+        io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+      } catch (err) {
+        console.error('Error proposing questions:', err);
+        socket.emit('error', 'Failed to propose questions');
+      }
     });
 
     socket.on('coding:select_question', async ({ questionId }: { questionId: string }) => {
-      const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
-      if (!rooms.length) return;
-      const roomId = rooms[0].split(':')[1];
+      try {
+        const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
+        if (!rooms.length) return;
+        const roomId = rooms[0].split(':')[1];
 
-      const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
-      if (!roomSession || !roomSession.sessions[0]) return;
+        const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
+        if (!roomSession || !roomSession.sessions[0]) return;
 
-      await prisma.codingSession.update({
-        where: { id: roomSession.sessions[0].id },
-        data: { questionId, phase: 'coding' }
-      });
+        await prisma.codingSession.update({
+          where: { id: roomSession.sessions[0].id },
+          data: { questionId, phase: 'coding' }
+        });
 
-      const updatedRoom = await prisma.codingRoom.findUnique({
-        where: { id: roomId },
-        include: fullRoomInclude
-      });
-      io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+        const updatedRoom = await prisma.codingRoom.findUnique({
+          where: { id: roomId },
+          include: fullRoomInclude
+        });
+        io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+      } catch (err) {
+        console.error('Error selecting question:', err);
+        socket.emit('error', 'Failed to select question');
+      }
     });
 
     socket.on('coding:end_session', async () => {
-      const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
-      if (!rooms.length) return;
-      const roomId = rooms[0].split(':')[1];
+      try {
+        const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
+        if (!rooms.length) return;
+        const roomId = rooms[0].split(':')[1];
 
-      const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
-      if (!roomSession || !roomSession.sessions[0]) return;
+        const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
+        if (!roomSession || !roomSession.sessions[0]) return;
 
-      await prisma.codingSession.update({
-        where: { id: roomSession.sessions[0].id },
-        data: { phase: 'evaluating' }
-      });
+        await prisma.codingSession.update({
+          where: { id: roomSession.sessions[0].id },
+          data: { phase: 'evaluating' }
+        });
 
-      const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
-      io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+        const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
+        io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+      } catch (err) {
+        console.error('Error ending session:', err);
+        socket.emit('error', 'Failed to end session');
+      }
     });
 
     socket.on('coding:submit_feedback', async (feedback: any) => {
-      const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
-      if (!rooms.length) return;
-      const roomId = rooms[0].split(':')[1];
+      try {
+        const rooms = Array.from(socket.rooms).filter(r => r.startsWith('coding:'));
+        if (!rooms.length) return;
+        const roomId = rooms[0].split(':')[1];
 
-      const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
-      if (!roomSession || !roomSession.sessions[0]) return;
+        const roomSession = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: { sessions: true } });
+        if (!roomSession || !roomSession.sessions[0]) return;
 
-      await prisma.codingSession.update({
-        where: { id: roomSession.sessions[0].id },
-        data: { ...feedback, phase: 'finished' }
-      });
+        await prisma.codingSession.update({
+          where: { id: roomSession.sessions[0].id },
+          data: { ...feedback, phase: 'finished' }
+        });
 
-      const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
-      io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+        const updatedRoom = await prisma.codingRoom.findUnique({ where: { id: roomId }, include: fullRoomInclude });
+        io.to(`coding:${roomId}`).emit('coding:room_state', updatedRoom as any);
+      } catch (err) {
+        console.error('Error submitting feedback:', err);
+        socket.emit('error', 'Failed to submit feedback');
+      }
     });
 
     // WebRTC Signaling

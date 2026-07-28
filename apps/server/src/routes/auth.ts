@@ -96,7 +96,12 @@ export async function authRoutes(app: FastifyInstance) {
     if (!refreshToken) {
       return reply.status(400).send({ error: 'Refresh token required' });
     }
-    const payload = verifyRefreshToken(refreshToken);
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      return reply.status(401).send({ error: 'Invalid or expired refresh token' });
+    }
     if (!payload) {
       return reply.status(401).send({ error: 'Invalid refresh token' });
     }
