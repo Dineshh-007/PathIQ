@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Socket } from 'socket.io-client';
 import { CodingRoom, ClientToServerEvents, ServerToClientEvents } from '@peerprep/shared-types';
 import { WebRTCProvider } from '@/components/coding/WebRTCProvider';
@@ -12,7 +12,9 @@ import { useAuthStore } from '@/store/authStore';
 import { api, arenaApi } from '@/services/api';
 import { connectSocket } from '@/services/socket';
 
-export default function ArenaClient({ roomId }: { roomId: string }) {
+export default function ArenaClient({ roomId: propRoomId }: { roomId?: string }) {
+  const params = useParams();
+  const roomId = propRoomId || (params?.id as string);
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -25,7 +27,7 @@ export default function ArenaClient({ roomId }: { roomId: string }) {
   }, [isAuthenticated, router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !roomId) return;
 
     let isMounted = true;
 

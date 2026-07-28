@@ -12,6 +12,8 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [creatingArena, setCreatingArena] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [arenaJoinId, setArenaJoinId] = useState('');
+  const [joiningArena, setJoiningArena] = useState(false);
   const [error, setError] = useState('');
 
   // Guard: redirect if not authenticated
@@ -61,6 +63,21 @@ export default function DashboardPage() {
         setError('Room not found. Check your Room Code or Arena ID and try again.');
         setJoining(false);
       }
+    }
+  };
+
+  const handleJoinArena = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = arenaJoinId.trim();
+    if (!id) return;
+    setJoiningArena(true);
+    setError('');
+    try {
+      await arenaApi.get(id);
+      router.push(`/arena/${id}`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || '1v1 Arena room not found. Please check the ID and try again.');
+      setJoiningArena(false);
     }
   };
 
@@ -190,9 +207,31 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <button id="create-arena-btn" className="btn-primary" onClick={handleCreateArena} disabled={creatingArena} style={{ width: '100%', padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
-              {creatingArena ? <><span className="spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} /> Entering...</> : 'Host New 1v1 Arena →'}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <button id="create-arena-btn" className="btn-primary" onClick={handleCreateArena} disabled={creatingArena} style={{ width: '100%', padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
+                {creatingArena ? <><span className="spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} /> Hosting...</> : '⚔️ Host 1v1 Coding Arena'}
+              </button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0', color: 'var(--color-text-subtle)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+                <span style={{ padding: '0 10px' }}>Or Join An Arena</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+              </div>
+
+              <form onSubmit={handleJoinArena} style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  placeholder="Paste Arena Room ID..."
+                  value={arenaJoinId}
+                  onChange={(e) => setArenaJoinId(e.target.value)}
+                  className="input"
+                  style={{ flex: 1, padding: '10px 14px', fontSize: '0.85rem' }}
+                />
+                <button type="submit" disabled={joiningArena || !arenaJoinId.trim()} className="btn-primary" style={{ padding: '10px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {joiningArena ? 'Joining...' : 'Join →'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
