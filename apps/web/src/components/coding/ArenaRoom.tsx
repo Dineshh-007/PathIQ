@@ -110,8 +110,17 @@ export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFin
               <option value="cpp" style={{ background: '#111' }}>C++</option>
             </select>
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} /> Live Collaboration
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-subtle)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button 
+              onClick={() => navigator.clipboard.writeText(room.id)} 
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '2px 8px', color: '#e2e8f0', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              title="Copy Room ID"
+            >
+              📋 ID: {room.id.slice(0, 8)}...
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} /> Live Collaboration
+            </div>
           </div>
         </div>
 

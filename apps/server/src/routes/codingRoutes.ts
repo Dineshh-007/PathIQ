@@ -36,9 +36,9 @@ export default async function codingRoutes(app: FastifyInstance) {
         }
       });
 
-      return { room };
+      return reply.send({ room });
     } catch (err: any) {
-      reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: err.message });
     }
   });
 
@@ -94,9 +94,9 @@ export default async function codingRoutes(app: FastifyInstance) {
         orderBy: { category: 'asc' }
       });
       
-      return { questions };
+      return reply.send({ questions });
     } catch (err: any) {
-      reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: err.message });
     }
   });
 
@@ -132,12 +132,12 @@ export default async function codingRoutes(app: FastifyInstance) {
       const data = (await response.json()) as any;
       
       if (data.compile && data.compile.code !== 0) {
-        return { output: '', error: data.compile.output };
+        return reply.send({ output: '', error: data.compile.output });
       }
-      return { output: data.run?.output ?? '', error: data.run?.stderr ?? '' };
+      return reply.send({ output: data.run?.output ?? '', error: data.run?.stderr ?? '' });
 
     } catch (err: any) {
-      reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: err.message });
     }
   });
 }

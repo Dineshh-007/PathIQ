@@ -46,15 +46,21 @@ export default function DashboardPage() {
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!joinCode.trim()) return;
+    const code = joinCode.trim();
+    if (!code) return;
     setJoining(true);
     setError('');
     try {
-      await roomApi.get(joinCode.trim().toUpperCase());
-      router.push(`/room/${joinCode.trim().toUpperCase()}`);
+      await roomApi.get(code.toUpperCase());
+      router.push(`/room/${code.toUpperCase()}`);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Room not found. Check your code and try again.');
-      setJoining(false);
+      try {
+        await arenaApi.get(code);
+        router.push(`/arena/${code}`);
+      } catch (arenaErr: any) {
+        setError('Room not found. Check your Room Code or Arena ID and try again.');
+        setJoining(false);
+      }
     }
   };
 
@@ -141,32 +147,32 @@ export default function DashboardPage() {
 
           {/* Join Room Card */}
           <div className="glass fade-in-up" style={{ padding: 36, animationDelay: '0.1s' }}>
-            <div style={{ fontSize: 44, marginBottom: 16 }}>🔗</div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 10, letterSpacing: '-0.02em' }}>Join a Room</h2>
+            <div style={{ fontSize: 44, marginBottom: 16 }}>🔑</div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 10, letterSpacing: '-0.02em' }}>Join Session</h2>
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', lineHeight: 1.7, marginBottom: 28 }}>
-              Got a room code from your study partner? Enter it below to join their interview session directly.
+              Got a room code or 1v1 Arena ID? Enter it below to join the session directly.
             </p>
             <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label className="label">Room Code</label>
+                <label className="label">Room Code / Arena ID</label>
                 <input
                   id="room-code-input"
                   className="input"
                   type="text"
-                  placeholder="e.g. AB12CD"
+                  placeholder="e.g. AB12CD or Arena ID"
                   value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  style={{ textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700, fontSize: '1.1rem', textAlign: 'center' }}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  maxLength={40}
+                  style={{ letterSpacing: '0.05em', fontWeight: 700, fontSize: '1.05rem', textAlign: 'center' }}
                   autoComplete="off"
                 />
               </div>
-              <button id="join-room-btn" className="btn-primary" type="submit" disabled={joining || joinCode.length !== 6} style={{ padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #059669, #10b981)' }}>
+              <button id="join-room-btn" className="btn-primary" type="submit" disabled={joining || !joinCode.trim() || (joinCode.trim().length !== 6 && joinCode.trim().length < 8)} style={{ padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #059669, #10b981)' }}>
                 {joining ? 'Joining...' : 'Join Session →'}
               </button>
             </form>
             <p style={{ marginTop: 16, fontSize: '0.78rem', color: 'var(--color-text-subtle)', textAlign: 'center' }}>
-              Room codes are exactly 6 characters
+              6-char code for interviews • 36-char ID for 1v1 Arena
             </p>
           </div>
 
@@ -185,7 +191,7 @@ export default function DashboardPage() {
               ))}
             </div>
             <button id="create-arena-btn" className="btn-primary" onClick={handleCreateArena} disabled={creatingArena} style={{ width: '100%', padding: '13px', fontSize: '0.9rem', background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
-              {creatingArena ? <><span className="spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} /> Entering...</> : 'Enter Arena'}
+              {creatingArena ? <><span className="spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} /> Entering...</> : 'Host New 1v1 Arena →'}
             </button>
           </div>
         </div>

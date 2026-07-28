@@ -12,6 +12,61 @@ interface ArenaLobbyProps {
   onJoinSession: () => void;
 }
 
+function RoomInviteBanner({ room }: { room: CodingRoom }) {
+  const [copiedId, setCopiedId] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(room.id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/arena/${room.id}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  return (
+    <div className="glass fade-in-up" style={{ padding: '20px 24px', marginBottom: 32, border: '1px solid rgba(99,102,241,0.4)', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.06))', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#818cf8', marginBottom: 6 }}>
+          <span>⚡ 1v1 Arena Room ID</span>
+          {!room.candidateId ? (
+            <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '2px 8px', borderRadius: 12, fontSize: '0.7rem' }}>Waiting for Candidate</span>
+          ) : (
+            <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', padding: '2px 8px', borderRadius: 12, fontSize: '0.7rem' }}>Candidate Joined</span>
+          )}
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em', wordBreak: 'break-all' }}>
+          {room.id}
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-subtle)', marginTop: 4 }}>
+          Share this Room ID or link with the candidate so they can join this session.
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button 
+          onClick={handleCopyId} 
+          className="btn-primary" 
+          style={{ padding: '10px 18px', fontSize: '0.85rem', background: copiedId ? '#10b981' : 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+        >
+          {copiedId ? '✓ Copied ID' : '📋 Copy Room ID'}
+        </button>
+        <button 
+          onClick={handleCopyLink} 
+          className="btn-primary" 
+          style={{ padding: '10px 18px', fontSize: '0.85rem', background: copiedLink ? '#10b981' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+        >
+          {copiedLink ? '✓ Copied Link' : '🔗 Copy Invite Link'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ArenaLobby({ room, userId, onProposeQuestions, onSelectQuestion }: ArenaLobbyProps) {
   const [questions, setQuestions] = useState<CodingQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +124,7 @@ export default function ArenaLobby({ room, userId, onProposeQuestions, onSelectQ
       <div style={{ minHeight: '100dvh', background: '#08080f', color: 'white', padding: '48px 24px' }}>
         <div className="bg-mesh" />
         <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <RoomInviteBanner room={room} />
           <h1 className="fade-in-up" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 8 }}>
             {isInterviewer ? (
               <>Select Questions for the <span className="text-gradient">Candidate</span></>
@@ -143,6 +199,7 @@ export default function ArenaLobby({ room, userId, onProposeQuestions, onSelectQ
       <div style={{ minHeight: '100dvh', background: '#08080f', color: 'white', padding: '48px 24px' }}>
         <div className="bg-mesh" />
         <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <RoomInviteBanner room={room} />
           <h1 className="fade-in-up" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 8 }}>
             {isCandidate ? (
               <>Select Your <span className="text-gradient">Challenge</span></>
