@@ -9,9 +9,7 @@ services:
       - key: PORT
         value: "3001"
       - key: DATABASE_URL
-        fromDatabase:
-          name: pathiq-db
-          property: connectionString
+        value: "postgresql://neondb_owner:npg_bXjr8HL1VCqP@ep-mute-darkness-ayppja0q.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
       - key: REDIS_URL
         fromService:
           type: redis
@@ -44,8 +42,4 @@ services:
     ipAllowList: []
     plan: free
 
-databases:
-  - name: pathiq-db
-    databaseName: peerprep
-    user: peerprep
-    plan: free
+
