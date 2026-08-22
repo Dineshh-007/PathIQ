@@ -30,6 +30,8 @@ export function verifyRefreshToken(token: string): JwtPayload {
   ) as JwtPayload;
 }
 
+import { prisma } from '../config/database';
+
 // ─── Fastify Auth Middleware ──────────────────────────────────────────────────
 export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
   const authHeader = req.headers.authorization;
@@ -39,6 +41,11 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
   const token = authHeader.slice(7);
   try {
     const payload = verifyAccessToken(token);
+    // Verify user still exists in the database
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user) {
+      return reply.status(401).send({ error: 'User no longer exists' });
+    }
     (req as any).user = payload;
   } catch {
     return reply.status(401).send({ error: 'Invalid or expired token' });

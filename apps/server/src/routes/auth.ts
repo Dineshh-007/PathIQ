@@ -105,10 +105,17 @@ export async function authRoutes(app: FastifyInstance) {
     if (!payload) {
       return reply.status(401).send({ error: 'Invalid refresh token' });
     }
+    
+    // Verify user still exists in the database
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user) {
+      return reply.status(401).send({ error: 'User no longer exists' });
+    }
+
     const newAccess = signAccessToken({
-      id: payload.id,
-      name: payload.name,
-      email: payload.email,
+      id: user.id,
+      name: user.name,
+      email: user.email,
     });
     return reply.send({ accessToken: newAccess });
   });

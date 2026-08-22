@@ -408,18 +408,19 @@ async function main() {
     return;
   }
 
-  // Delete all and re-seed for a clean state
-  await prisma.question.deleteMany({});
-
-  await prisma.question.createMany({
-    data: questions.map((q) => ({
-      text: q.text,
-      role: q.role as any,
-      difficulty: q.difficulty as any,
-      approved: true,
-    })),
-    skipDuplicates: true,
-  });
+  for (const q of questions) {
+    const exists = await prisma.question.findFirst({ where: { text: q.text } });
+    if (!exists) {
+      await prisma.question.create({
+        data: {
+          text: q.text,
+          role: q.role as any,
+          difficulty: q.difficulty as any,
+          approved: true,
+        }
+      });
+    }
+  }
 
   const count = await prisma.question.count();
   console.log(`✅ Seeded ${count} questions across 6 roles.`);
