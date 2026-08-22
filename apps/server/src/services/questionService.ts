@@ -41,8 +41,12 @@ export async function fetchCandidateQuestions(
     finalQuestions = fallback;
   }
 
-  // Shuffle and pick 5 to avoid deterministic repetition when usageCount is identical
-  finalQuestions = finalQuestions.sort(() => Math.random() - 0.5).slice(0, 5);
+  // Shuffle with Fisher-Yates and pick 5 to ensure true randomness and rotation
+  for (let i = finalQuestions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [finalQuestions[i], finalQuestions[j]] = [finalQuestions[j], finalQuestions[i]];
+  }
+  finalQuestions = finalQuestions.slice(0, 5);
 
   // If DB is literally completely empty, inject dummy questions
   if (finalQuestions.length === 0) {
