@@ -89,7 +89,7 @@ export function registerInterviewSocket(io: IoServer) {
       // Update session with timer and phase now that questions are stored
       const delay = (room.votingTimeSecs ?? 60) * 1000;
       const timerEndsAt = new Date(Date.now() + delay).toISOString();
-      await prisma.interviewSession.update({
+      const updatedSessionDB = await prisma.interviewSession.update({
         where: { id: session.id },
         data: { role, phase: 'voting', timerEndsAt: new Date(timerEndsAt) },
       });
@@ -103,7 +103,7 @@ export function registerInterviewSocket(io: IoServer) {
 
         // --- AI INTERVIEWER V1 ---
         // Asynchronously call AI selection instead of scheduling voting timeout
-        handleAISelection(io, room, session, roomCode, questions).catch(err => {
+        handleAISelection(io, room, updatedSessionDB, roomCode, questions).catch(err => {
           console.error('[AI Selection Error]', err);
         });
       } catch (error: any) {
@@ -173,7 +173,7 @@ export function registerInterviewSocket(io: IoServer) {
 
       // Find the true SessionQuestion (frontend passes the base Question ID)
       const sq = await prisma.sessionQuestion.findFirst({
-        where: { sessionId: session.id, questionId: sessionQuestionId }
+        where: { sessionId: session.id, questionId: sessionQuestionId, questionNumber: session.currentQuestionNumber }
       });
       if (!sq) return;
       
@@ -554,7 +554,7 @@ async function advanceSession(io: IoServer, room: any, session: any, roomCode: s
     });
 
     // Next question — update phase to voting now that questions are stored
-    await prisma.interviewSession.update({
+    const updatedSessionDB = await prisma.interviewSession.update({
       where: { id: session.id },
       data: { phase: 'voting', currentQuestionNumber: nextQNum, timerEndsAt },
     });
@@ -563,7 +563,7 @@ async function advanceSession(io: IoServer, room: any, session: any, roomCode: s
     io.to(roomCode).emit('interview:voting_start', updatedSession);
 
     // --- AI INTERVIEWER V1 ---
-    handleAISelection(io, room, session, roomCode, questions).catch(err => {
+    handleAISelection(io, room, updatedSessionDB, roomCode, questions).catch(err => {
       console.error('[AI Selection Error]', err);
     });
   } else {
