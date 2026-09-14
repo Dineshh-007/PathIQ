@@ -187,53 +187,17 @@ export default function InterviewPanel() {
 
   // ── Voting Phase ──────────────────────────────────────────────────────────
   if (currentPhase === 'voting') {
-    const questions = session?.candidateQuestions ?? [];
-    console.log('[DEBUG-CLIENT] Render voting phase. Questions length:', questions.length, 'session:', session);
     return (
       <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ width: '100%', maxWidth: 680 }}>
           <InterviewHeader session={session} user={user} />
-          <div className="glass fade-in-up" style={{ padding: 32, marginTop: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 4 }}>🗳️ Vote for a Question</h2>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                  {isInterviewee ? 'Interviewers are voting. You cannot see which question they choose.' : 'Select the question you want to ask. Highest votes wins.'}
-                </p>
-              </div>
-              <CountdownTimer endsAt={votingTimerEndsAt} durationSecs={60} size={72} label="Voting" />
-            </div>
-
-            {!isInterviewee ? (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-                  {questions.map((q, i) => (
-                    <button key={q.id} id={`vote-q-${i}`} onClick={() => handleVote(q.id)}
-                      style={{ padding: '16px 20px', borderRadius: 12, background: myVote === q.id ? 'rgba(124,58,237,0.2)' : 'var(--color-surface-2)', border: `2px solid ${myVote === q.id ? 'rgba(124,58,237,0.6)' : 'var(--color-border)'}`, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.2s', display: 'flex', alignItems: 'flex-start', gap: 12 }}
-                      onMouseEnter={(e) => { if (myVote !== q.id) (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(124,58,237,0.35)'; }}
-                      onMouseLeave={(e) => { if (myVote !== q.id) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: myVote === q.id ? 'rgba(124,58,237,0.4)' : 'var(--color-surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 800, flexShrink: 0, color: myVote === q.id ? '#a78bfa' : 'var(--color-text-muted)' }}>
-                        {String.fromCharCode(65 + i)}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.6, margin: 0 }}>{q.text}</p>
-                        <span style={{ fontSize: '0.7rem', color: DIFF_COLOR[q.difficulty], fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6, display: 'block' }}>{q.difficulty}</span>
-                      </div>
-                      {myVote === q.id && <span style={{ fontSize: 18, flexShrink: 0 }}>✅</span>}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                  <div className="progress-bar" style={{ flex: 1 }}><div className="progress-bar-fill" style={{ width: `${(voteCount / 4) * 100}%` }} /></div>
-                  <span>{voteCount}/4 votes cast</span>
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Your interviewers are selecting a question for you. Stand by...</p>
-              </div>
-            )}
+          <div className="glass fade-in-up" style={{ padding: 32, marginTop: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>AI Interviewer is Selecting a Question...</h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: 24 }}>
+              The AI is analyzing the candidate's previous responses and picking the best next question from the database.
+            </p>
+            <div className="spin" style={{ width: 40, height: 40, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', margin: '0 auto' }} />
           </div>
         </div>
       </div>
