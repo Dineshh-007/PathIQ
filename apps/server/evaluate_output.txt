@@ -1,0 +1,152 @@
+
+==================================================
+TEST SCENARIO: NORMAL_CANDIDATE
+==================================================
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) OFFSET $3
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) ORDER BY "public"."questions"."id" ASC LIMIT $3 OFFSET $4
+[aiInterviewerService] AI selected question d76b356b-cd59-4c90-92ad-19b6b1beb01c. Reason: Starting with an easy, fundamental database question serves as an effective warm-up to build confidence at the beginning of the interview.
+
+Round 1:
+Candidate Questions Provided: 10
+AI Selected: [d76b356b-cd59-4c90-92ad-19b6b1beb01c] Explain the difference between SQL and NoSQL databases. When should you use each? (Difficulty: easy)
+Candidate Answer: "I usually use SQL when I need strict schema and ACID compliance, and NoSQL for flexible JSON-like data that scales horizontally."
+[aiInterviewerService] AI selected question 9fcd9a75-53cc-4f59-9e7e-7fa903d704c9. Reason: This question naturally builds upon the candidate's previous answer regarding SQL vs NoSQL trade-offs by probing deeper into distributed database trade-offs and consistency models.
+
+Round 2:
+Candidate Questions Provided: 10
+AI Selected: [9fcd9a75-53cc-4f59-9e7e-7fa903d704c9] Explain the CAP theorem. How does it affect your choice of database in a distributed system? (Difficulty: hard)
+Candidate Answer: "A REST API uses HTTP methods like GET and POST to operate on resources. You should version it and use standard status codes."
+[aiInterviewerService] AI selected question 0f58e677-2885-49e9-916e-8d9255735731. Reason: This question naturally follows up on the candidate's mention of REST APIs in their previous answer while assessing their practical system design skills.
+
+Round 3:
+Candidate Questions Provided: 10
+AI Selected: [0f58e677-2885-49e9-916e-8d9255735731] Design a rate limiting system for a public REST API that handles 1 million requests per day. (Difficulty: hard)
+Candidate Answer: "Git merge creates a new merge commit combining two branches, while rebase moves the feature branch's commits to the tip of main."
+[aiInterviewerService] AI selected question 3ea5325c-f86f-4713-899b-14b098a645c4. Reason: This question tests fundamental software design and architecture principles, which complements the previous database and system design questions.
+
+Round 4:
+Candidate Questions Provided: 10
+AI Selected: [3ea5325c-f86f-4713-899b-14b098a645c4] What are the SOLID principles? Give a real-world example of applying the Single Responsibility Principle. (Difficulty: medium)
+Candidate Answer: "Docker containers share the host OS kernel and are very lightweight, whereas VMs run a full guest OS on a hypervisor."
+
+Exact repeated questions: NO (4 total, 4 unique)
+
+==================================================
+TEST SCENARIO: WEAK_CANDIDATE
+==================================================
+prisma:query SELECT 1
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) OFFSET $3
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) ORDER BY "public"."questions"."id" ASC LIMIT $3 OFFSET $4
+[aiInterviewerService] AI selected question d76b356b-cd59-4c90-92ad-19b6b1beb01c. Reason: Starting with a foundational easy question on SQL vs NoSQL database concepts helps ease the candidate into the interview while assessing essential fundamental knowledge.
+
+Round 1:
+Candidate Questions Provided: 10
+AI Selected: [d76b356b-cd59-4c90-92ad-19b6b1beb01c] Explain the difference between SQL and NoSQL databases. When should you use each? (Difficulty: easy)
+Candidate Answer: "I don't really know, maybe one is faster?"
+[aiInterviewerService] AI selected question 5ea477cc-fd2d-4efe-988c-813226f7b79d. Reason: Since the candidate struggled with basic database concepts, pivoting to a fundamental computer science concept like processes versus threads helps gauge their core technical knowledge.
+
+Round 2:
+Candidate Questions Provided: 10
+AI Selected: [5ea477cc-fd2d-4efe-988c-813226f7b79d] Explain the difference between a process and a thread. When would you prefer using one over the other? (Difficulty: medium)
+Candidate Answer: "An API is how computers talk."
+[aiInterviewerService] AI selected question 09981da8-0f12-4a9c-afa1-af9935392a28. Reason: Since the candidate struggled with basic OS and database concepts, asking a foundational algorithm and time complexity question will help gauge their core computer science knowledge at an appropriate level.
+
+Round 3:
+Candidate Questions Provided: 10
+AI Selected: [09981da8-0f12-4a9c-afa1-af9935392a28] What is the time complexity of QuickSort in the best, average, and worst case? When would you prefer MergeSort? (Difficulty: medium)
+Candidate Answer: "Git merge is for merging code."
+[aiInterviewerService] AI selected question 3ea5325c-f86f-4713-899b-14b098a645c4. Reason: Given the candidate's strong difficulty with operating systems, databases, and algorithms, testing core software design principles provides a final chance to gauge fundamental programming knowledge before evaluating harder system design concepts.
+
+Round 4:
+Candidate Questions Provided: 10
+AI Selected: [3ea5325c-f86f-4713-899b-14b098a645c4] What are the SOLID principles? Give a real-world example of applying the Single Responsibility Principle. (Difficulty: medium)
+Candidate Answer: "Docker is for running apps."
+
+Exact repeated questions: NO (4 total, 4 unique)
+
+==================================================
+TEST SCENARIO: STRONG_CANDIDATE
+==================================================
+prisma:query SELECT 1
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) OFFSET $3
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) ORDER BY "public"."questions"."id" ASC LIMIT $3 OFFSET $4
+[aiInterviewerService] AI selected question d76b356b-cd59-4c90-92ad-19b6b1beb01c. Reason: Starting with an accessible foundational question about database choices helps ease the candidate into the interview and establish a baseline.
+
+Round 1:
+Candidate Questions Provided: 10
+AI Selected: [d76b356b-cd59-4c90-92ad-19b6b1beb01c] Explain the difference between SQL and NoSQL databases. When should you use each? (Difficulty: easy)
+Candidate Answer: "SQL databases like PostgreSQL offer ACID transactions and relational integrity, ideal for financial data. NoSQL like MongoDB offers horizontal scaling and flexible schemas, perfect for rapid prototyping or document stores."
+[aiInterviewerService] AI selected question 9fcd9a75-53cc-4f59-9e7e-7fa903d704c9. Reason: This question logically builds on the candidate's strong initial answer regarding database trade-offs and scaling by diving deeper into distributed systems theory.
+
+Round 2:
+Candidate Questions Provided: 10
+AI Selected: [9fcd9a75-53cc-4f59-9e7e-7fa903d704c9] Explain the CAP theorem. How does it affect your choice of database in a distributed system? (Difficulty: hard)
+Candidate Answer: "I design REST APIs around nouns (resources). I implement idempotent PUT/DELETE methods, use standard HTTP status codes (200, 201, 400, 404, 500), and secure it with OAuth2 or JWT. I also use cursor-based pagination for performance."
+[aiInterviewerService] AI selected question 0f58e677-2885-49e9-916e-8d9255735731. Reason: This question naturally builds on the candidate's previous response regarding REST API design and security, transitioning into practical, high-scale system design.
+
+Round 3:
+Candidate Questions Provided: 10
+AI Selected: [0f58e677-2885-49e9-916e-8d9255735731] Design a rate limiting system for a public REST API that handles 1 million requests per day. (Difficulty: hard)
+Candidate Answer: "Merge creates a merge commit, preserving the exact history of both branches. Rebase rewrites history by placing the feature commits on top of the target branch, creating a linear history. I prefer rebase for local cleanup and merge for PRs."
+[aiInterviewerService] AI selected question 3ea5325c-f86f-4713-899b-14b098a645c4. Reason: This question evaluates foundational object-oriented design and software architecture principles to complement the database and system design topics previously covered.
+
+Round 4:
+Candidate Questions Provided: 10
+AI Selected: [3ea5325c-f86f-4713-899b-14b098a645c4] What are the SOLID principles? Give a real-world example of applying the Single Responsibility Principle. (Difficulty: medium)
+Candidate Answer: "VMs virtualize the hardware using a hypervisor and require a full guest OS, making them heavy. Containers virtualize the OS layer, sharing the host kernel, making them start in milliseconds and use very little memory."
+
+Exact repeated questions: NO (4 total, 4 unique)
+
+==================================================
+TEST SCENARIO: ANSWER_AWARENESS_AND_REPETITION
+==================================================
+prisma:query SELECT 1
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) OFFSET $3
+prisma:query SELECT "public"."questions"."id", "public"."questions"."text", "public"."questions"."role"::text, "public"."questions"."difficulty"::text, "public"."questions"."approved", "public"."questions"."usage_count", "public"."questions"."submitted_by_id", "public"."questions"."created_at" FROM "public"."questions" WHERE ("public"."questions"."role" = CAST($1::text AS "public"."InterviewRole") AND "public"."questions"."approved" = $2) ORDER BY "public"."questions"."id" ASC LIMIT $3 OFFSET $4
+[aiInterviewerService] AI selected question d76b356b-cd59-4c90-92ad-19b6b1beb01c. Reason: Starting with an easy, foundational database question allows the candidate to build confidence before moving on to more complex technical topics.
+
+Round 1:
+Candidate Questions Provided: 10
+AI Selected: [d76b356b-cd59-4c90-92ad-19b6b1beb01c] Explain the difference between SQL and NoSQL databases. When should you use each? (Difficulty: easy)
+Candidate Answer: "Normalization reduces redundancy and organizes data into normal forms like 1NF, 2NF, and 3NF. It splits tables to avoid anomalies."
+[aiInterviewerService] AI selected question 9fcd9a75-53cc-4f59-9e7e-7fa903d704c9. Reason: This question is a natural follow-up to database selection by probing deeper into distributed system trade-offs through the CAP theorem.
+
+Round 2:
+Candidate Questions Provided: 10
+AI Selected: [9fcd9a75-53cc-4f59-9e7e-7fa903d704c9] Explain the CAP theorem. How does it affect your choice of database in a distributed system? (Difficulty: hard)
+Candidate Answer: "I'm not really sure about indexing, it just makes the database faster."
+[aiInterviewerService] AI question selection failed
+Model: gemini-3.6-flash
+Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash
+Please retry in 55.266176501s. [{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-3.6-flash"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"55s"}]
+Fallback: ae586633-eda2-42b5-953e-7fe14fa431f6
+
+Round 3:
+Candidate Questions Provided: 10
+AI Selected: [ae586633-eda2-42b5-953e-7fe14fa431f6] Walk me through how you would design a URL shortener like bit.ly at scale. (Difficulty: hard)
+Candidate Answer: "A REST API uses HTTP. You use GET for fetching and POST for creating."
+[aiInterviewerService] AI question selection failed
+Model: gemini-3.6-flash
+Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash
+Please retry in 43.176650799s. [{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"model":"gemini-3.6-flash","location":"global"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"43s"}]
+Fallback: 09981da8-0f12-4a9c-afa1-af9935392a28
+
+Round 4:
+Candidate Questions Provided: 10
+AI Selected: [09981da8-0f12-4a9c-afa1-af9935392a28] What is the time complexity of QuickSort in the best, average, and worst case? When would you prefer MergeSort? (Difficulty: medium)
+Candidate Answer: "I know Java OOP concepts like Inheritance and Polymorphism"
+[aiInterviewerService] AI question selection failed
+Model: gemini-3.6-flash
+Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash
+Please retry in 31.104259227s. [{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-3.6-flash"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"31s"}]
+Fallback: eeeff96e-92d9-4640-ae8e-c047b9742ea0
+
+Round 5:
+Candidate Questions Provided: 10
+AI Selected: [eeeff96e-92d9-4640-ae8e-c047b9742ea0] How does garbage collection work in modern languages like Java or Python? What are common memory leaks and how do you prevent them? (Difficulty: hard)
+Candidate Answer: "I am very good at solving graph problems using BFS"
+
+Exact repeated questions: NO (5 total, 5 unique)
