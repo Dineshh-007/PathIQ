@@ -119,22 +119,15 @@ model RoomParticipant {
 }
 
 model Question {
-  id                   String        @id @default(uuid())
-  text                 String
-  role                 InterviewRole
-  domain               String        @default("General")
-  topic                String        @default("General")
-  difficulty           Difficulty    @default(medium)
-  expectedAnswerPoints String[]      @map("expected_answer_points")
-  relatedQuestionIds   String[]      @map("related_question_ids")
-  followUpQuestionIds  String[]      @map("follow_up_question_ids")
-  alternativeQuestionIds String[]    @map("alternative_question_ids")
-  approved             Boolean       @default(true)
-  active               Boolean       @default(true)
-  usageCount           Int           @default(0) @map("usage_count")
-  submittedBy          User?         @relation(fields: [submittedById], references: [id])
-  submittedById        String?       @map("submitted_by_id")
-  createdAt            DateTime      @default(now()) @map("created_at")
+  id          String        @id @default(uuid())
+  text        String
+  role        InterviewRole
+  difficulty  Difficulty    @default(medium)
+  approved    Boolean       @default(true)
+  usageCount  Int           @default(0) @map("usage_count")
+  submittedBy User?         @relation(fields: [submittedById], references: [id])
+  submittedById String?     @map("submitted_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
 
   // Relations
   sessionQuestions SessionQuestion[]
@@ -176,20 +169,6 @@ model SessionQuestion {
   answerEndedAt   DateTime?        @map("answer_ended_at")
   answerText      String?          @map("answer_text")
   averageScore    Float?           @map("average_score")
-  
-  // AI Evaluation Fields
-  aiRelevanceScore    Float?       @map("ai_relevance_score")
-  aiCorrectnessScore  Float?       @map("ai_correctness_score")
-  aiCompletenessScore Float?       @map("ai_completeness_score")
-  aiClarityScore      Float?       @map("ai_clarity_score")
-  aiReasoningScore    Float?       @map("ai_reasoning_score")
-  aiOverallScore      Float?       @map("ai_overall_score")
-  aiAnswerQuality     String?      @map("ai_answer_quality") // GOOD, POOR, PARTIALLY_CORRECT
-  aiFeedback          String?      @db.Text @map("ai_feedback")
-  aiStrengths         String[]     @map("ai_strengths")
-  aiWeaknesses        String[]     @map("ai_weaknesses")
-  aiRecommendedAction String?      @map("ai_recommended_action") // RELATED_FOLLOWUP, ALTERNATIVE
-  aiNextQuestionId    String?      @map("ai_next_question_id")
 
   // Relations
   votes       QuestionVote[]

@@ -4,6 +4,8 @@ const API_KEY = process.env.GEMINI_API_KEY || '';
 const isEnabled = API_KEY.length > 0;
 const genAI = isEnabled ? new GoogleGenerativeAI(API_KEY) : null;
 
+import { emitTrace } from './prismService';
+
 export interface PerformanceAnalysis {
   strengths: string[];
   weaknesses: string[];
@@ -62,8 +64,7 @@ export async function analyzeInterviewPerformance(
     return generateFallbackAnalysis(candidateName, sessions);
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-  const model = genAI.getGenerativeModel({ model: modelName });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
   // Build structured context from sessions
   const questionBlocks = sessions.flatMap((session) =>
@@ -109,11 +110,16 @@ Guidelines:
   `.trim();
 
   try {
+    const startTime = Date.now();
     const result = await model.generateContent(prompt);
-
+    const latencyMs = Date.now() - startTime;
     const text = result.response.text().trim();
 
-
+    await emitTrace(prompt, text, {
+      model: 'gemini-1.5-pro',
+      latencyMs: latencyMs,
+      sessionId: `analysis-${candidateName.replace(/\s+/g, '-')}`
+    }).catch(console.error);
 
     // Extract JSON from potential markdown code block
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text];

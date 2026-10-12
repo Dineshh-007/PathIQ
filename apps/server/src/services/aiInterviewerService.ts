@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { emitTrace } from './prismService';
 import type { Question } from '@prisma/client';
 
 const API_KEY = process.env.GEMINI_API_KEY || '';
@@ -17,8 +18,7 @@ export async function selectNextQuestion(
     return candidateQuestions[0].id;
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-  const model = genAI.getGenerativeModel({ model: modelName });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
   // Prepare the context for the prompt
   const questionsList = candidateQuestions
@@ -52,21 +52,22 @@ Do not include any other text outside the JSON object.
   `.trim();
 
   try {
+    const startTime = Date.now();
     const result = await model.generateContent(prompt);
+    const latencyMs = Date.now() - startTime;
     const text = result.response.text().trim();
+
+    await emitTrace(prompt, text, {
+      model: 'gemini-1.5-pro',
+      latencyMs: latencyMs,
+      sessionId: `interview-${sessionId}`
+    }).catch(console.error);
 
     // Parse the JSON
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text];
     const jsonText = jsonMatch[1] || text;
     
-    let parsed: any = {};
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (parseErr) {
-      console.error(`[aiInterviewerService] AI returned invalid JSON. Model: ${modelName}. Error: ${String(parseErr)}. Fallback: ${candidateQuestions[0].id}`);
-      return candidateQuestions[0].id;
-    }
-    
+    const parsed = JSON.parse(jsonText);
     const selectedId = parsed.questionId;
 
     // Validate that the AI selected a valid ID
@@ -74,14 +75,12 @@ Do not include any other text outside the JSON object.
       console.log(`[aiInterviewerService] AI selected question ${selectedId}. Reason: ${parsed.reason}`);
       return selectedId;
     } else {
-      console.error(`[aiInterviewerService] AI returned invalid question ID: ${selectedId}. Model: ${modelName}. Fallback: ${candidateQuestions[0].id}`);
+      console.warn(`[aiInterviewerService] AI returned invalid question ID: ${selectedId}. Falling back to first candidate.`);
       return candidateQuestions[0].id;
     }
 
-  } catch (err: any) {
-
-    console.error(`[aiInterviewerService] AI question selection failed\nModel: ${modelName}\nError: ${err.message || String(err)}\nFallback: ${candidateQuestions[0].id}`);
-
+  } catch (err) {
+    console.error('[aiInterviewerService] AI selection failed, falling back to first question:', err);
     return candidateQuestions[0].id;
   }
 }
