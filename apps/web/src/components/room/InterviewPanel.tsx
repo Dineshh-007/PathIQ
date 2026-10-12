@@ -282,50 +282,13 @@ export default function InterviewPanel() {
               </div>
             )}
 
-            {isInterviewee ? (
-              <div style={{ padding: '48px 0', textAlign: 'center' }}>
-                <div className="spin" style={{ width: 36, height: 36, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', margin: '0 auto 16px' }} />
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>Evaluators: {evalProgress.submitted}/{evalProgress.total} submitted</p>
-              </div>
-            ) : evalSubmitted ? (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-                <h3 style={{ fontWeight: 700, marginBottom: 8 }}>Evaluation Submitted!</h3>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>Waiting for others...</p>
-                <div className="progress-bar"><div className="progress-bar-fill" style={{ width: `${(evalProgress.submitted / evalProgress.total) * 100}%` }} /></div>
-                <p style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--color-text-subtle)' }}>{evalProgress.submitted}/{evalProgress.total} evaluators done</p>
-              </div>
-            ) : (
-              <>
-                {/* Score Slider */}
-                <div style={{ marginBottom: 28 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <label className="label">Score</label>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: myScore >= 7 ? '#10b981' : myScore >= 4 ? '#f59e0b' : '#ef4444', transition: 'color 0.3s' }}>
-                      {myScore}<span style={{ fontSize: '1rem', color: 'var(--color-text-subtle)', fontWeight: 400 }}>/10</span>
-                    </div>
-                  </div>
-                  <input id="score-slider" type="range" min={1} max={10} value={myScore} onChange={(e) => setMyScore(parseInt(e.target.value))}
-                    style={{ width: '100%', accentColor: myScore >= 7 ? '#10b981' : myScore >= 4 ? '#f59e0b' : '#ef4444', height: 6, cursor: 'pointer' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--color-text-subtle)', marginTop: 6 }}>
-                    <span>1 — Poor</span><span>5 — Average</span><span>10 — Excellent</span>
-                  </div>
-                </div>
-
-                {/* Feedback */}
-                <div style={{ marginBottom: 24 }}>
-                  <label className="label">Written Feedback <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--color-text-subtle)' }}>(optional)</span></label>
-                  <textarea id="eval-feedback" className="input" rows={4} placeholder="What did they do well? What could be improved? Be specific." value={myFeedback} onChange={(e) => setMyFeedback(e.target.value)} style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }} />
-                </div>
-
-                <button id="submit-eval-btn" className="btn-primary" onClick={() => handleSubmitEval(sqId)} style={{ width: '100%', padding: '13px' }}>
-                  🔒 Submit Evaluation
-                </button>
-                <p style={{ marginTop: 12, fontSize: '0.74rem', color: 'var(--color-text-subtle)', textAlign: 'center' }}>
-                  Your score is sealed until all {evalProgress.total} evaluators submit.
-                </p>
-              </>
-            )}
+            <div style={{ padding: '32px 0', textAlign: 'center' }}>
+              <div className="spin" style={{ width: 42, height: 42, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', margin: '0 auto 16px' }} />
+              <h3 style={{ fontWeight: 800, fontSize: '1.05rem', marginBottom: 6, color: '#c084fc' }}>🤖 Gemini AI is Evaluating Answer</h3>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.84rem', maxWidth: 400, margin: '0 auto' }}>
+                Analyzing answer quality, accuracy, and logic to intelligently choose the next adaptive question from the question bank...
+              </p>
+            </div>
           </div>
         </div>
       </div>

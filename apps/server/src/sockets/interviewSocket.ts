@@ -7,6 +7,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { redis } from '../config/redis';
 import { buildSessionState, startInterviewTurn } from './sessionHelpers';
 import { selectNextQuestion } from '../services/aiInterviewerService';
+import { evaluateAnswerAndSelectNextQuestion } from '../services/aiAdaptiveService';
 
 // Re-export for consumers that imported directly from this module
 export { buildSessionState, startInterviewTurn };
@@ -101,11 +102,12 @@ export function registerInterviewSocket(io: IoServer) {
         io.to(roomCode).emit('interview:role_selected', { role: role as InterviewRole });
         io.to(roomCode).emit('interview:voting_start', updatedSession);
 
-        // --- AI INTERVIEWER V1 ---
-        // Asynchronously call AI selection instead of scheduling voting timeout
-        handleAISelection(io, room, updatedSessionDB, roomCode, questions).catch(err => {
-          console.error('[AI Selection Error]', err);
-        });
+        // Human voting is enabled for the first round
+        await timerQueue.add(
+          'voting_timeout',
+          { type: 'voting_timeout', roomCode, sessionId: session.id, questionIds: questions.map((q: any) => q.id) },
+          { delay, jobId: `vote-${session.id}-${session.currentQuestionNumber}` }
+        );
       } catch (error: any) {
         console.error('interview:select_role error:', error);
         socket.emit('error', 'Failed to select role');
@@ -114,8 +116,44 @@ export function registerInterviewSocket(io: IoServer) {
 
     // ── Vote on question ───────────────────────────────────────────────────
     socket.on('interview:vote', async ({ questionId }) => {
-      // V1 AI Interviewer: Human voting is disabled.
-      socket.emit('error', 'Human voting is disabled. The AI is selecting the question.');
+      try {
+        if (!roomCode) return;
+        const room = await prisma.room.findUnique({ where: { roomCode } });
+        if (!room) return;
+
+        const session = await prisma.interviewSession.findFirst({
+          where: { roomId: room.id, phase: 'voting' },
+        });
+        if (!session) return;
+
+        const socketUserId = getSocketUserId(socket);
+
+        // Record the vote
+        const sq = await prisma.sessionQuestion.findFirst({
+          where: { sessionId: session.id, questionId, questionNumber: session.currentQuestionNumber }
+        });
+        if (!sq) return;
+
+        await prisma.questionVote.upsert({
+          where: { sessionQuestionId_voterId: { sessionQuestionId: sq.id, voterId: socketUserId } },
+          update: {},
+          create: { sessionQuestionId: sq.id, voterId: socketUserId },
+        });
+
+        // Count votes
+        const totalVotes = await prisma.questionVote.count({
+          where: { sessionQuestion: { sessionId: session.id, questionNumber: session.currentQuestionNumber } }
+        });
+        const numInterviewers = (await prisma.roomParticipant.count({ where: { roomId: room.id } })) - 1;
+
+        if (totalVotes >= numInterviewers) {
+          await timerQueue.remove(`vote-${session.id}-${session.currentQuestionNumber}`);
+          await resolveVoting(io, room, session, roomCode);
+        }
+      } catch (error: any) {
+        console.error('interview:vote error:', error);
+        socket.emit('error', 'Failed to cast vote');
+      }
     });
 
     // ── Answer done early / Submitted Text Answer ─────────────────────────
@@ -145,9 +183,9 @@ export function registerInterviewSocket(io: IoServer) {
         });
       }
 
-        // Remove the pending timer and trigger evaluation phase
+        // Remove the pending timer and trigger AI Evaluation / Adaptive phase
         await timerQueue.remove(`answer-${session.id}-${session.currentQuestionNumber}`);
-        await startEvaluationPhase(io, room, session, roomCode);
+        await startAdaptiveAIEvaluation(io, room, session, roomCode);
       } catch (error: any) {
         console.error('interview:answer_done error:', error);
         socket.emit('error', 'Failed to submit answer');
@@ -449,7 +487,7 @@ async function handleAnswerTimeout(io: IoServer, roomCode: string, sessionId: st
   const session = await prisma.interviewSession.findUnique({ where: { id: sessionId } });
   if (!room || !session || session.phase !== 'answering') return;
 
-  await startEvaluationPhase(io, room, session, roomCode);
+  await startAdaptiveAIEvaluation(io, room, session, roomCode);
 }
 
 // ─── Start evaluation phase ────────────────────────────────────────────────────
@@ -723,3 +761,174 @@ async function computeAndEmitResults(io: IoServer, room: any, roomCode: string) 
 function getSocketUserId(socket: any): string {
   return (socket as any)._userId ?? socket.handshake.query.userId ?? '';
 }
+
+// ─── Adaptive AI Evaluation (Gemini Evaluates & Selects Next Question) ─────────
+async function startAdaptiveAIEvaluation(io: IoServer, room: any, session: any, roomCode: string) {
+  const lockKey = `adaptive_lock:${session.id}:${session.currentQuestionNumber}`;
+  const acquired = await redis.set(lockKey, '1', 'EX', 30, 'NX');
+  if (!acquired) return; // another process is already starting evaluation
+
+  // Mark answer as ended
+  const activeSQ = await prisma.sessionQuestion.findFirst({
+    where: { sessionId: session.id, isSelected: true, questionNumber: session.currentQuestionNumber, answerStartedAt: { not: null }, answerEndedAt: null },
+    include: { question: true }
+  });
+  
+  if (activeSQ) {
+    await prisma.sessionQuestion.update({
+      where: { id: activeSQ.id },
+      data: { answerEndedAt: new Date() },
+    });
+  }
+
+  // Tell everyone evaluation has started (loading screen)
+  await prisma.interviewSession.update({
+    where: { id: session.id },
+    data: { phase: 'evaluating', timerEndsAt: null },
+  });
+
+  io.to(roomCode).emit('interview:answer_end');
+  io.to(roomCode).emit('interview:evaluation_start', { answerText: activeSQ?.answerText ?? '' });
+
+  // RUN AI EVALUATION
+  if (!activeSQ || !activeSQ.question) {
+    await advanceSession(io, room, session, roomCode);
+    return;
+  }
+
+  const askedSQs = await prisma.sessionQuestion.findMany({
+    where: { sessionId: session.id, isSelected: true },
+    select: { questionId: true }
+  });
+  const askedIds = askedSQs.map(sq => sq.questionId);
+
+  const evalResult = await evaluateAnswerAndSelectNextQuestion(
+    activeSQ.question as any,
+    activeSQ.answerText || '',
+    askedIds
+  );
+
+  if (evalResult) {
+    // Save the AI evaluation to the session question
+    await prisma.sessionQuestion.update({
+      where: { id: activeSQ.id },
+      data: {
+        aiRelevanceScore: evalResult.relevanceScore,
+        aiCorrectnessScore: evalResult.correctnessScore,
+        aiOverallScore: evalResult.overallScore,
+        aiAnswerQuality: evalResult.answerQuality,
+        aiFeedback: evalResult.feedback,
+        aiRecommendedAction: evalResult.recommendedAction,
+        aiNextQuestionId: evalResult.nextQuestionId,
+        averageScore: evalResult.overallScore,
+      }
+    });
+    
+    // Broadcast the AI evaluation
+    io.to(roomCode).emit('interview:scores_revealed', {
+      sessionQuestionId: activeSQ.id,
+      evaluations: [{
+        evaluatorId: 'gemini-ai',
+        evaluatorName: 'Gemini AI',
+        score: evalResult.overallScore,
+        feedback: evalResult.feedback
+      }],
+      averageScore: evalResult.overallScore,
+    });
+  }
+
+  // Advance session adaptively
+  await advanceSessionAdaptive(io, room, session, roomCode, evalResult?.nextQuestionId || null);
+}
+
+// ─── Advance Session Adaptive ──────────────────────────────────────────────────
+async function advanceSessionAdaptive(io: IoServer, room: any, session: any, roomCode: string, nextQuestionId: string | null) {
+  const questionsPerTurn = room.questionsPerTurn ?? 2;
+  const nextQNum = session.currentQuestionNumber + 1;
+
+  if (nextQNum <= questionsPerTurn && nextQuestionId) {
+    // We have a next question chosen by AI, skip voting entirely!
+    const delay = (room.answerTimeSecs ?? 180) * 1000;
+    const timerEndsAt = new Date(Date.now() + delay);
+
+    // Create the session question immediately as selected
+    const newSQ = await prisma.sessionQuestion.create({
+      data: {
+        sessionId: session.id,
+        questionId: nextQuestionId,
+        questionNumber: nextQNum,
+        isVotingQuestion: true,
+        isSelected: true,
+        answerStartedAt: new Date(),
+      }
+    });
+    
+    await markQuestionUsed(nextQuestionId);
+    
+    const nextQ = await prisma.question.findUnique({ where: { id: nextQuestionId }});
+    if (!nextQ) return;
+
+    await prisma.interviewSession.update({
+      where: { id: session.id },
+      data: { phase: 'answering', currentQuestionNumber: nextQNum, timerEndsAt },
+    });
+
+    // Determine lead interviewer
+    const participants = await prisma.roomParticipant.findMany({
+      where: { roomId: room.id },
+      orderBy: { seatOrder: 'asc' },
+    });
+    const interviewers = participants.filter((p: any) => p.userId !== session.intervieweeId);
+    const leadIdx = (session.roundNumber + nextQNum - 1) % (interviewers.length || 1);
+    const leadInterviewer = interviewers[leadIdx];
+
+    io.to(roomCode).emit('interview:question_selected', {
+      id: nextQ.id,
+      text: nextQ.text,
+      role: nextQ.role as any,
+      difficulty: nextQ.difficulty as any,
+    });
+    
+    io.to(roomCode).emit('interview:answer_start', {
+      timerEndsAt: timerEndsAt.toISOString(),
+      leadInterviewerUserId: leadInterviewer?.userId ?? '',
+    });
+    
+    // Schedule server-side answer timeout
+    await timerQueue.add(
+      'answer_timeout',
+      { type: 'answer_timeout', roomCode, sessionId: session.id, sqId: newSQ.id },
+      { delay, jobId: `answer-${session.id}-${nextQNum}` }
+    );
+  } else {
+    // Turn complete — compute average and rotate
+    const allSQs = await prisma.sessionQuestion.findMany({
+      where: { sessionId: session.id, isSelected: true },
+    });
+    const turnAvg = allSQs.reduce((a: number, sq: { averageScore: number | null }) => a + (sq.averageScore ?? 0), 0) / (allSQs.length || 1);
+
+    await prisma.interviewSession.update({
+      where: { id: session.id },
+      data: { phase: 'completed', completedAt: new Date(), averageScore: turnAvg },
+    });
+
+    io.to(roomCode).emit('interview:turn_complete', { averageScore: turnAvg });
+
+    const participants = await prisma.roomParticipant.findMany({
+      where: { roomId: room.id },
+      include: { user: true },
+      orderBy: { seatOrder: 'asc' },
+    });
+
+    const completedSessions = await prisma.interviewSession.count({
+      where: { roomId: room.id, phase: 'completed' },
+    });
+
+    if (completedSessions >= participants.length) {
+      io.to(roomCode).emit('awards:voting_start');
+    } else {
+      await startInterviewTurn(io, room, session.roundNumber + 1, participants);
+    }
+  }
+}
+

@@ -34,20 +34,33 @@ export async function evaluateAnswerAndSelectNextQuestion(
 
   // 1. Fetch potential next questions
   const relatedQ = await prisma.question.findMany({
-    where: { id: { in: currentQuestion.relatedQuestionIds || [] }, active: true, id: { notIn: askedQuestionIds } }
+    where: {
+      id: { in: currentQuestion.relatedQuestionIds || [], notIn: askedQuestionIds },
+      active: true,
+    }
   });
   
   const followupQ = await prisma.question.findMany({
-    where: { id: { in: currentQuestion.followUpQuestionIds || [] }, active: true, id: { notIn: askedQuestionIds } }
+    where: {
+      id: { in: currentQuestion.followUpQuestionIds || [], notIn: askedQuestionIds },
+      active: true,
+    }
   });
   
   const alternativeQ = await prisma.question.findMany({
-    where: { id: { in: currentQuestion.alternativeQuestionIds || [] }, active: true, id: { notIn: askedQuestionIds } }
+    where: {
+      id: { in: currentQuestion.alternativeQuestionIds || [], notIn: askedQuestionIds },
+      active: true,
+    }
   });
 
   // If no related/followup/alternative, fetch random from same domain
   const sameDomainQ = await prisma.question.findMany({
-    where: { domain: currentQuestion.domain, active: true, id: { notIn: askedQuestionIds } },
+    where: {
+      domain: currentQuestion.domain,
+      active: true,
+      id: { notIn: askedQuestionIds },
+    },
     take: 5
   });
 
