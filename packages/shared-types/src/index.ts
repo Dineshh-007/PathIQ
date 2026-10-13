@@ -205,9 +205,10 @@ export interface ClientToServerEvents {
   'coding:submit_feedback': (data: { technicalScore: number; problemSolving: number; communication: number; codeQuality: number; writtenFeedback: string }) => void;
   
   // WebRTC Signaling
-  'webrtc:offer': (data: { targetUserId: string; offer: any }) => void;
-  'webrtc:answer': (data: { targetUserId: string; answer: any }) => void;
-  'webrtc:ice_candidate': (data: { targetUserId: string; candidate: any }) => void;
+  'webrtc:offer': (data: { targetUserId: string; offer: any; sourceUserId?: string }) => void;
+  'webrtc:answer': (data: { targetUserId: string; answer: any; sourceUserId?: string }) => void;
+  'webrtc:ice_candidate': (data: { targetUserId: string; candidate: any; sourceUserId?: string }) => void;
+  'webrtc:ready': (data: { targetUserId: string; sourceUserId?: string }) => void;
 }
 
 // ─── Socket Events (Server → Client) ─────────────────────────────────────────
@@ -277,4 +278,5 @@ export interface ServerToClientEvents {
   'webrtc:offer': (data: { sourceUserId: string; offer: any }) => void;
   'webrtc:answer': (data: { sourceUserId: string; answer: any }) => void;
   'webrtc:ice_candidate': (data: { sourceUserId: string; candidate: any }) => void;
+  'webrtc:ready': (data: { sourceUserId: string }) => void;
 }

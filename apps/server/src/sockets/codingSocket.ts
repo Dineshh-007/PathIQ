@@ -22,7 +22,9 @@ export function registerCodingSocket(io: IoServer) {
         socket.join(`coding:${roomId}`);
         const userId = getSocketUserId(socket, clientUserId, token);
         if (userId) {
+          (socket as any)._userId = userId;
           socket.join(`user:${userId}`);
+          console.log(`[codingSocket] Socket ${socket.id} joined user:${userId} and coding:${roomId}`);
         }
         
         let room = await prisma.codingRoom.findUnique({
@@ -163,16 +165,27 @@ export function registerCodingSocket(io: IoServer) {
     });
 
     // WebRTC Signaling
-    socket.on('webrtc:offer', ({ targetUserId, offer }: { targetUserId: string; offer: any }) => {
-      socket.to(`user:${targetUserId}`).emit('webrtc:offer', { sourceUserId: getSocketUserId(socket), offer });
+    socket.on('webrtc:offer', ({ targetUserId, offer, sourceUserId: clientSourceUserId }: { targetUserId: string; offer: any; sourceUserId?: string }) => {
+      const sourceUserId = getSocketUserId(socket, clientSourceUserId);
+      console.log(`[WebRTC] Relay offer from ${sourceUserId} to user:${targetUserId}`);
+      socket.to(`user:${targetUserId}`).emit('webrtc:offer', { sourceUserId, offer });
     });
 
-    socket.on('webrtc:answer', ({ targetUserId, answer }: { targetUserId: string; answer: any }) => {
-      socket.to(`user:${targetUserId}`).emit('webrtc:answer', { sourceUserId: getSocketUserId(socket), answer });
+    socket.on('webrtc:answer', ({ targetUserId, answer, sourceUserId: clientSourceUserId }: { targetUserId: string; answer: any; sourceUserId?: string }) => {
+      const sourceUserId = getSocketUserId(socket, clientSourceUserId);
+      console.log(`[WebRTC] Relay answer from ${sourceUserId} to user:${targetUserId}`);
+      socket.to(`user:${targetUserId}`).emit('webrtc:answer', { sourceUserId, answer });
     });
 
-    socket.on('webrtc:ice_candidate', ({ targetUserId, candidate }: { targetUserId: string; candidate: any }) => {
-      socket.to(`user:${targetUserId}`).emit('webrtc:ice_candidate', { sourceUserId: getSocketUserId(socket), candidate });
+    socket.on('webrtc:ice_candidate', ({ targetUserId, candidate, sourceUserId: clientSourceUserId }: { targetUserId: string; candidate: any; sourceUserId?: string }) => {
+      const sourceUserId = getSocketUserId(socket, clientSourceUserId);
+      socket.to(`user:${targetUserId}`).emit('webrtc:ice_candidate', { sourceUserId, candidate });
+    });
+
+    socket.on('webrtc:ready', ({ targetUserId, sourceUserId: clientSourceUserId }: { targetUserId: string; sourceUserId?: string }) => {
+      const sourceUserId = getSocketUserId(socket, clientSourceUserId);
+      console.log(`[WebRTC] Relay ready from ${sourceUserId} to user:${targetUserId}`);
+      socket.to(`user:${targetUserId}`).emit('webrtc:ready', { sourceUserId });
     });
   });
 }
@@ -189,5 +202,9 @@ function getSocketUserId(socket: any, fallbackUserId?: string, token?: string): 
       // ignore token verification error
     }
   }
-  return (socket as any)._userId ?? fallbackUserId ?? socket.handshake.query.userId ?? '';
+  const resolved = (socket as any)._userId ?? fallbackUserId ?? socket.handshake?.query?.userId ?? '';
+  if (resolved && !(socket as any)._userId) {
+    (socket as any)._userId = resolved;
+  }
+  return resolved;
 }

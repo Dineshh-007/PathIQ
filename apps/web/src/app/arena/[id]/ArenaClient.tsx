@@ -8,6 +8,7 @@ import { WebRTCProvider } from '@/components/coding/WebRTCProvider';
 import ArenaLobby from '@/components/coding/ArenaLobby';
 import ArenaRoom from '@/components/coding/ArenaRoom';
 import FeedbackScreen from '@/components/coding/FeedbackScreen';
+import VideoOverlay from '@/components/coding/VideoOverlay';
 import { useAuthStore } from '@/store/authStore';
 import { api, arenaApi } from '@/services/api';
 import { connectSocket } from '@/services/socket';
@@ -149,9 +150,18 @@ export default function ArenaClient({ roomId: propRoomId }: { roomId?: string })
 
   const session = room.sessions?.[0];
   const isInterviewer = user.id === room.interviewerId;
+  const partnerUserId = isInterviewer ? room.candidateId : room.interviewerId;
+  const partnerName = isInterviewer 
+    ? (room as any).candidate?.name || 'Candidate' 
+    : (room as any).interviewer?.name || 'Interviewer';
 
   return (
-    <WebRTCProvider socket={socket} userId={user.id}>
+    <WebRTCProvider 
+      socket={socket} 
+      userId={user.id} 
+      partnerUserId={partnerUserId}
+      isCaller={isInterviewer}
+    >
       {!session || session.phase === 'proposing' || session.phase === 'selecting' ? (
         <ArenaLobby
           room={room}
@@ -175,6 +185,7 @@ export default function ArenaClient({ roomId: propRoomId }: { roomId?: string })
           onExit={() => router.push('/dashboard')}
         />
       )}
+      <VideoOverlay partnerName={partnerName} />
     </WebRTCProvider>
   );
 }

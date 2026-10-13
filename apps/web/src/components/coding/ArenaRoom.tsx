@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import CodeEditor from './CodeEditor';
 import ExecutionPanel from './ExecutionPanel';
-import VideoOverlay from './VideoOverlay';
 import { CodingRoom, CodingQuestion } from '@peerprep/shared-types';
 
 interface ArenaRoomProps {
@@ -21,10 +20,6 @@ export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFin
 
   const [code, setCode] = useState(session?.codeSnapshot || '');
   const [language, setLanguage] = useState(session?.language || 'javascript');
-
-  const partnerName = isInterviewer 
-    ? (room as any).candidate?.name || 'Candidate' 
-    : (room as any).interviewer?.name || 'Interviewer';
 
   const descriptionText = question?.description || 'Loading challenge description...';
 
@@ -146,8 +141,6 @@ export default function ArenaRoom({ room, userId, userName, onExecuteCode, onFin
         </div>
       </div>
 
-      {/* Floating Video Overlay */}
-      <VideoOverlay partnerName={partnerName} />
     </div>
   );
 }
