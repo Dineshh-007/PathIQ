@@ -392,13 +392,19 @@ export default function ResultsPanel() {
                   </div>
                 )}
 
-                {/* Ideal Model Answer */}
+                {/* AI's Ideal Model Answer */}
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#34d399', marginBottom: 10 }}>
-                    ✓ Ideal Model Answer & Discussion Points:
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: '1.1rem' }}>🤖</span>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#34d399' }}>
+                      AI's Answer & Official Model Solution:
+                    </div>
+                    <span className="badge badge-green" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                      Authoritative Deep Dive
+                    </span>
                   </div>
-                  <div style={{ background: 'var(--color-surface-2)', padding: '18px 22px', borderRadius: 12, border: '1px solid var(--color-border)' }}>
-                    <div style={{ fontSize: '0.88rem', lineHeight: 1.8, color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>
+                  <div style={{ background: 'var(--color-surface-2)', padding: '22px 26px', borderRadius: 12, border: '1px solid rgba(52, 211, 153, 0.25)', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.04)' }}>
+                    <div style={{ fontSize: '0.9rem', lineHeight: 1.85, color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>
                       {sol.idealAnswer}
                     </div>
                   </div>

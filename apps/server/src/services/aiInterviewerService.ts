@@ -21,7 +21,7 @@ export async function selectNextQuestion(
     return candidateQuestions[0].id;
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
   const model = genAI.getGenerativeModel({ model: modelName });
 
   // Prepare the context for the prompt
@@ -116,7 +116,7 @@ export async function selectAdaptiveSecondQuestion(
     };
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
   const genAI = getGenAI();
 
