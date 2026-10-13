@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  timeout: 45000,
 });
 
 // Attach access token to every request
@@ -61,8 +61,8 @@ export const roomApi = {
 
 // ── AI ────────────────────────────────────────────────────────────────────────
 export const aiApi = {
-  analyze: (roomId: string) => api.post('/ai/analyze', { roomId }),
-  solutions: (roomId: string) => api.post('/ai/solutions', { roomId }),
+  analyze: (roomId: string) => api.post('/ai/analyze', { roomId }, { timeout: 60000 }),
+  solutions: (roomId: string) => api.post('/ai/solutions', { roomId }, { timeout: 60000 }),
 };
 
 // ── Arena ─────────────────────────────────────────────────────────────────────

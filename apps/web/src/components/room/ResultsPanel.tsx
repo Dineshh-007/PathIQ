@@ -47,11 +47,13 @@ export default function ResultsPanel() {
     setSolutionsLoading(true);
     setSolutionsError('');
     try {
-      const { data } = await aiApi.solutions(results?.roomId ?? '');
+      const targetRoomId = results?.roomId || room?.id || room?.roomCode || '';
+      const { data } = await aiApi.solutions(targetRoomId);
       setSolutions(data.solutions || []);
       setActiveTab('solutions');
     } catch (err: any) {
-      setSolutionsError(err.response?.data?.error || 'Failed to generate solution guide.');
+      const msg = err.response?.data?.error || err.message || 'Failed to generate solution guide.';
+      setSolutionsError(msg);
     } finally {
       setSolutionsLoading(false);
     }

@@ -234,11 +234,11 @@ Questions Asked in the Session:
 ${questionsList}
 
 For EVERY question, provide:
-1. "summary": A crisp 2-sentence explanation of what interviewers are testing.
-2. "coreConcepts": Array of 3-4 key technical concepts (e.g. ["ACID guarantees", "Leader-Follower Replication"]).
-3. "idealAnswer": Comprehensive, well-structured model answer explaining how to excel at this question (use clear bullet points, trade-offs, and best practices).
-4. "diagram": A valid Mermaid.js graph (use \`graph TD\` or \`sequenceDiagram\`) representing the architecture, data flow, or lifecycle for this question. IMPORTANT: Ensure node labels only use alphanumeric characters or double quotes without nested quotes (e.g. A["Node Label"] --> B["Next Step"]). Do NOT wrap in backticks inside the JSON string.
-5. "diagramCaption": A 1-sentence caption explaining the diagram.
+1. "summary": A crisp 1-2 sentence core technical overview.
+2. "coreConcepts": Array of 3-4 key technical tags.
+3. "idealAnswer": Focused 3-4 bullet point model answer explaining core principles, key trade-offs, and best practices.
+4. "diagram": A valid, compact Mermaid.js flowchart (4-6 nodes max, use \`graph TD\` or \`sequenceDiagram\`). Ensure node labels only use alphanumeric characters or double quotes without nested quotes (e.g. A["Step 1"] --> B["Step 2"]). Do NOT wrap in backticks inside the JSON string.
+5. "diagramCaption": A short 1-sentence caption explaining the diagram.
 
 Return your response strictly as a JSON array of objects with this exact structure:
 [
@@ -257,7 +257,13 @@ Do not include any text outside the JSON array.
 
   try {
     const startTime = Date.now();
-    const result = await model.generateContent(prompt);
+    const generateWithTimeout = Promise.race([
+      model.generateContent(prompt),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini API call timed out')), 25000)
+      ),
+    ]);
+    const result = await generateWithTimeout;
     const latencyMs = Date.now() - startTime;
     const text = result.response.text().trim();
 
@@ -269,7 +275,14 @@ Do not include any text outside the JSON array.
 
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text];
     const jsonText = jsonMatch[1] || text;
-    const parsed = JSON.parse(jsonText) as any[];
+    let parsed: any[] = [];
+    try {
+      const parsedData = JSON.parse(jsonText);
+      parsed = Array.isArray(parsedData) ? parsedData : [];
+    } catch {
+      console.warn('[aiService] Failed to parse JSON from Gemini, falling back to topic blueprints');
+      return createFallbackSolutions();
+    }
 
     return questions.map((q) => {
       const match = parsed.find((p) => p.questionId === q.id) || {};

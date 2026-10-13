@@ -50,11 +50,19 @@ export async function aiRoutes(app: FastifyInstance) {
     if (!roomId) return reply.status(400).send({ error: 'roomId required' });
 
     try {
+      // Find room by either UUID or room code
+      const room = await prisma.room.findFirst({
+        where: {
+          OR: [{ id: roomId }, { roomCode: roomId }],
+        },
+      });
+      const actualRoomId = room ? room.id : roomId;
+
       // Gather all questions selected across all sessions in this room in chronological order
-      const sessionQuestions = await prisma.sessionQuestion.findMany({
+      let sessionQuestions = await prisma.sessionQuestion.findMany({
         where: {
           isSelected: true,
-          session: { roomId },
+          session: { roomId: actualRoomId },
         },
         include: {
           question: true,
@@ -70,6 +78,28 @@ export async function aiRoutes(app: FastifyInstance) {
           { id: 'asc' },
         ],
       });
+
+      if (sessionQuestions.length === 0) {
+        // Fallback: check any session questions associated with this room
+        sessionQuestions = await prisma.sessionQuestion.findMany({
+          where: {
+            session: { roomId: actualRoomId },
+          },
+          include: {
+            question: true,
+            session: {
+              include: {
+                interviewee: { select: { id: true, name: true } },
+              },
+            },
+          },
+          orderBy: [
+            { session: { roundNumber: 'asc' } },
+            { questionNumber: 'asc' },
+            { id: 'asc' },
+          ],
+        });
+      }
 
       if (sessionQuestions.length === 0) {
         return reply.send({ solutions: [] });
