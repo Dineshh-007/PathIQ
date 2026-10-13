@@ -317,12 +317,22 @@ export default function ResultsPanel() {
             )}
 
             {!solutionsLoading && solutions.map((sol, index) => (
-              <div key={sol.questionId || index} className="glass glow-border fade-in-up" style={{ padding: '28px 32px' }}>
+              <div key={sol.sessionQuestionId || `${sol.questionId}-${index}`} className="glass glow-border fade-in-up" style={{ padding: '28px 32px' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 260 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                       <span className="badge badge-purple" style={{ fontSize: '0.75rem', fontWeight: 800 }}>Question {index + 1}</span>
+                      {sol.roundNumber && (
+                        <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
+                          Round {sol.roundNumber} • Q{sol.questionNumber || (index % 2 + 1)}
+                        </span>
+                      )}
+                      {sol.intervieweeName && (
+                        <span className="badge badge-green" style={{ fontSize: '0.72rem' }}>
+                          👤 Candidate: {sol.intervieweeName}
+                        </span>
+                      )}
                       <span className="badge badge-yellow" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>{sol.difficulty || 'Medium'}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>Role: {sol.role || 'Software Engineering'}</span>
                     </div>
@@ -331,6 +341,18 @@ export default function ResultsPanel() {
                     </h3>
                   </div>
                 </div>
+
+                {/* Candidate's submitted answer (if available) */}
+                {sol.answerText && (
+                  <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', marginBottom: 18 }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', marginBottom: 4 }}>
+                      📝 Candidate's Answer ({sol.intervieweeName || 'Interviewee'}):
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.6, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                      &ldquo;{sol.answerText}&rdquo;
+                    </p>
+                  </div>
+                )}
 
                 {/* Key Concepts */}
                 {sol.coreConcepts && sol.coreConcepts.length > 0 && (
@@ -364,7 +386,7 @@ export default function ResultsPanel() {
                         <span style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>{sol.diagramCaption}</span>
                       )}
                     </div>
-                    <MermaidDiagram chart={sol.diagram} id={sol.questionId} />
+                    <MermaidDiagram chart={sol.diagram} id={sol.sessionQuestionId ? `diag-${sol.sessionQuestionId}` : `diag-${sol.questionId}-${index}`} />
                   </div>
                 )}
 

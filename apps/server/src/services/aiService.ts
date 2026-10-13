@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const API_KEY = process.env.GEMINI_API_KEY || '';
-const isEnabled = API_KEY.length > 0;
-const genAI = isEnabled ? new GoogleGenerativeAI(API_KEY) : null;
-
 import { emitTrace } from './prismService';
+
+function getGenAI(): GoogleGenerativeAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '') return null;
+  return new GoogleGenerativeAI(apiKey);
+}
 
 export interface PerformanceAnalysis {
   strengths: string[];
@@ -58,13 +59,15 @@ export async function analyzeInterviewPerformance(
   candidateName: string,
   sessions: any[]
 ): Promise<PerformanceAnalysis> {
+  const genAI = getGenAI();
   // If no API key is configured, return a score-based fallback immediately
-  if (!isEnabled || !genAI) {
+  if (!genAI) {
     console.warn('[aiService] GEMINI_API_KEY not set — using fallback analysis');
     return generateFallbackAnalysis(candidateName, sessions);
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   // Build structured context from sessions
   const questionBlocks = sessions.flatMap((session) =>
@@ -116,7 +119,7 @@ Guidelines:
     const text = result.response.text().trim();
 
     await emitTrace(prompt, text, {
-      model: 'gemini-1.5-pro',
+      model: modelName,
       latencyMs: latencyMs,
       sessionId: `analysis-${candidateName.replace(/\s+/g, '-')}`
     }).catch(console.error);
@@ -153,30 +156,70 @@ export async function generateRoomSolutions(
 ): Promise<QuestionSolution[]> {
   if (!questions || questions.length === 0) return [];
 
-  // Fallback generation helper
-  const createFallbackSolutions = (): QuestionSolution[] => {
-    return questions.map((q) => ({
-      questionId: q.id,
-      questionText: q.text,
-      role: q.role,
-      difficulty: q.difficulty,
-      summary: `Mastering key concepts and trade-offs for: "${q.text.slice(0, 60)}..."`,
-      coreConcepts: ['Core Architecture', 'Trade-offs & Constraints', 'Best Practices'],
-      idealAnswer: `To answer "${q.text}" effectively:\n\n1. Clarify requirements and operational constraints.\n2. Outline the fundamental architecture and principles.\n3. Discuss edge-cases, error handling, and performance trade-offs.\n4. Summarize with real-world production considerations.`,
-      diagram: `graph TD
-  A["Client Input"] --> B["System Core"]
-  B --> C["Processing & Logic"]
-  C --> D["Validation & Output"]`,
-      diagramCaption: 'High-Level Execution & Architecture Flow',
-    }));
+  // Topic-specific diagram helper
+  const getTopicDiagram = (text: string) => {
+    const lower = text.toLowerCase();
+    if (lower.includes('deadlock') || lower.includes('coffman')) {
+      return {
+        diagram: `graph TD\n  P1["Thread / Process 1"] -->|Holds Lock| R1["Resource A"]\n  P1 -.->|Blocked Waiting For| R2["Resource B"]\n  P2["Thread / Process 2"] -->|Holds Lock| R2\n  P2 -.->|Blocked Waiting For| R1\n  subgraph DeadlockCycle["Circular Wait Dependency"]\n    R1 -.-> P1\n    R2 -.-> P2\n  end`,
+        caption: 'Deadlock Circular Wait Dependency Flow'
+      };
+    }
+    if (lower.includes('mutex') || lower.includes('semaphore') || lower.includes('lock') || lower.includes('concurrency') || lower.includes('spinlock')) {
+      return {
+        diagram: `sequenceDiagram\n  autonumber\n  participant T1 as Thread 1\n  participant S as Mutex / Lock\n  participant T2 as Thread 2\n  T1->>S: acquire() -> Granted\n  Note over T1,S: Critical Section Executing\n  T2->>S: acquire() -> Blocked\n  T1->>S: release()\n  S-->>T2: Wake Up & Grant Lock\n  Note over T2,S: Critical Section Executing\n  T2->>S: release()`,
+        caption: 'Concurrency Lock Protocol & Critical Section Lifecycle'
+      };
+    }
+    if (lower.includes('sort') || lower.includes('divide') || lower.includes('array') || lower.includes('tree') || lower.includes('graph')) {
+      return {
+        diagram: `graph TD\n  Arr["Input: [6, 2, 8, 4, 9, 1]"] --> Part["Divide & Partition"]\n  Part --> L["Left Subarray: [2, 1, 4]"]\n  Part --> R["Right Subarray: [6, 8, 9]"]\n  L --> SL["Recursively Process Left"]\n  R --> SR["Recursively Process Right"]\n  SL --> M["Combine / Merge Step"]\n  SR --> M\n  M --> Out["Sorted Output: [1, 2, 4, 6, 8, 9]"]`,
+        caption: 'Divide and Conquer Algorithmic Decomposition'
+      };
+    }
+    if (lower.includes('database') || lower.includes('sql') || lower.includes('cache') || lower.includes('redis') || lower.includes('storage')) {
+      return {
+        diagram: `graph TD\n  Client["Application Service"] -->|1. Check Cache| Cache[("Redis Cache")]\n  Cache -->|Cache Hit| Return["Return Cached Data"]\n  Cache -.->|Cache Miss| DB[("Primary Database")]\n  DB -->|Fetch Row| Cache\n  Cache --> Return`,
+        caption: 'Cache-Aside Read Flow Architecture'
+      };
+    }
+    if (lower.includes('distributed') || lower.includes('kafka') || lower.includes('queue') || lower.includes('event') || lower.includes('cap')) {
+      return {
+        diagram: `graph LR\n  Producer["Producer Service"] -->|Publish Event| Broker["Message Broker / Kafka"]\n  Broker -->|Partition 0| ConsumerA["Consumer Group A"]\n  Broker -->|Partition 1| ConsumerB["Consumer Group B"]\n  ConsumerA --> State[("Persistence Store")]\n  ConsumerB --> Alert["Downstream Service"]`,
+        caption: 'Asynchronous Event Pipeline & Partitioning'
+      };
+    }
+    return {
+      diagram: `graph TD\n  Client["Client Request"] --> Gateway["API Gateway / Router"]\n  Gateway --> Service["Core Business Logic"]\n  Service --> Store[("State Store")]\n  Service --> Resp["Structured Response"]`,
+      caption: 'System Execution & Architecture Flow'
+    };
   };
 
-  if (!isEnabled || !genAI) {
+  // Fallback generation helper
+  const createFallbackSolutions = (): QuestionSolution[] => {
+    return questions.map((q) => {
+      const { diagram, caption } = getTopicDiagram(q.text);
+      return {
+        questionId: q.id,
+        questionText: q.text,
+        role: q.role,
+        difficulty: q.difficulty,
+        summary: `Mastering key concepts and trade-offs for: "${q.text.slice(0, 60)}..."`,
+        coreConcepts: ['Core Architecture', 'Trade-offs & Constraints', 'Best Practices'],
+        idealAnswer: `To answer "${q.text}" effectively:\n\n1. Clarify requirements and operational constraints.\n2. Outline the fundamental architecture and principles.\n3. Discuss edge-cases, error handling, and performance trade-offs.\n4. Summarize with real-world production considerations.`,
+        diagram,
+        diagramCaption: caption,
+      };
+    });
+  };
+
+  const genAI = getGenAI();
+  if (!genAI) {
     console.warn('[aiService] GEMINI_API_KEY not configured — using fallback solution guide');
     return createFallbackSolutions();
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const model = genAI.getGenerativeModel({ model: modelName });
 
   const questionsList = questions
@@ -230,6 +273,7 @@ Do not include any text outside the JSON array.
 
     return questions.map((q) => {
       const match = parsed.find((p) => p.questionId === q.id) || {};
+      const fallbackTopic = getTopicDiagram(q.text);
       return {
         questionId: q.id,
         questionText: q.text,
@@ -238,8 +282,8 @@ Do not include any text outside the JSON array.
         summary: match.summary || `Analysis and solution guide for: ${q.text.slice(0, 50)}...`,
         coreConcepts: Array.isArray(match.coreConcepts) ? match.coreConcepts : ['System Design', 'Performance', 'Trade-offs'],
         idealAnswer: match.idealAnswer || 'Focus on architectural clarity, algorithmic trade-offs, and clear communication.',
-        diagram: match.diagram || `graph TD\n  A["Input"] --> B["Process"]\n  B --> C["Output"]`,
-        diagramCaption: match.diagramCaption || 'Solution Architecture Flow',
+        diagram: match.diagram || fallbackTopic.diagram,
+        diagramCaption: match.diagramCaption || fallbackTopic.caption,
       };
     });
   } catch (err: any) {

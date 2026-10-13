@@ -542,7 +542,7 @@ async function advanceSession(io: IoServer, room: any, session: any, roomCode: s
           approved: true,
           id: { notIn: askedIds },
         },
-        take: 8,
+        take: 40,
       });
 
       if (previousSQ?.question && candidateQuestions.length > 0) {

@@ -2,9 +2,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { emitTrace } from './prismService';
 import type { Question } from '@prisma/client';
 
-const API_KEY = process.env.GEMINI_API_KEY || '';
-const isEnabled = API_KEY.length > 0;
-const genAI = isEnabled ? new GoogleGenerativeAI(API_KEY) : null;
+function getGenAI(): GoogleGenerativeAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '') return null;
+  return new GoogleGenerativeAI(apiKey);
+}
 
 export async function selectNextQuestion(
   sessionId: string,
@@ -12,13 +14,15 @@ export async function selectNextQuestion(
   candidateQuestions: Question[],
   previousQAs: { question: string; answer: string | null }[]
 ): Promise<string> {
+  const genAI = getGenAI();
   // Fallback if no API key or no questions provided
-  if (!isEnabled || !genAI || candidateQuestions.length === 0) {
+  if (!genAI || candidateQuestions.length === 0) {
     console.warn('[aiInterviewerService] GEMINI_API_KEY not set or no candidate questions, falling back to first question.');
     return candidateQuestions[0].id;
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   // Prepare the context for the prompt
   const questionsList = candidateQuestions
@@ -58,7 +62,7 @@ Do not include any other text outside the JSON object.
     const text = result.response.text().trim();
 
     await emitTrace(prompt, text, {
-      model: 'gemini-1.5-pro',
+      model: modelName,
       latencyMs: latencyMs,
       sessionId: `interview-${sessionId}`
     }).catch(console.error);
@@ -112,10 +116,12 @@ export async function selectAdaptiveSecondQuestion(
     };
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+
+  const genAI = getGenAI();
 
   // Fallback if no Gemini key
-  if (!isEnabled || !genAI) {
+  if (!genAI) {
     const fallbackScore = humanScore ?? 7;
     const isGood = fallbackScore >= 7;
     const selectedQ = availableQuestions[0];
@@ -149,12 +155,17 @@ ${humanScore !== null ? `Interviewer panel rating: ${humanScore.toFixed(1)}/10` 
 
 TASK:
 1. Evaluate the candidate's answer on a scale of 1 to 10 for technical depth, correctness, and reasoning.
-2. If score >= 7 (Strong / Good answer):
-   - Set "isDeepDive" to true, "quality" to "GOOD".
-   - Select a question from the Available Questions list that is RELEVANT to the same topic/concepts as Question 1, drilling deeper into trade-offs or advanced scenarios.
-3. If score < 7 (Poor / Incomplete answer):
-   - Set "isDeepDive" to false, "quality" to "POOR".
-   - Select an ALTERNATIVE question from the Available Questions list that covers a DIFFERENT topic or domain area, giving the candidate a fresh opportunity.
+2. CRITICAL TOPIC MATCHING RULES:
+   - If score >= 7 (Strong / Good answer):
+     * You MUST select the question from the Available Questions list that is most DIRECTLY RELATED to the technical topic and concept of Question 1.
+     * Examples:
+       - If Question 1 was about Deadlocks / Threads / Concurrency: You MUST select another question about Concurrency, Mutexes, Semaphores, Race Conditions, or Thread Pools. NEVER switch to Sorting, Databases, or unrelated topics!
+       - If Question 1 was about Databases / Distributed Systems: Select another Database, CAP theorem, or Storage question.
+       - If Question 1 was about Algorithms: Select another Algorithm or Data Structure question.
+     * Set "isDeepDive": true, "quality": "GOOD".
+   - If score < 7 (Poor / Incomplete / Wrong answer):
+     * Select an ALTERNATIVE question covering a completely DIFFERENT domain/topic, giving the candidate a second chance on another skill.
+     * Set "isDeepDive": false, "quality": "POOR".
 
 Available Candidate Questions to choose from:
 ${questionsList}
