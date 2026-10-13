@@ -6,6 +6,7 @@ import { fetchCandidateQuestions, selectWinningQuestion, markQuestionUsed } from
 import { Queue, Worker, Job } from 'bullmq';
 import { redis } from '../config/redis';
 import { buildSessionState, startInterviewTurn } from './sessionHelpers';
+import { selectAdaptiveSecondQuestion } from '../services/aiInterviewerService';
 
 // Re-export for consumers that imported directly from this module
 export { buildSessionState, startInterviewTurn };
@@ -519,6 +520,111 @@ async function advanceSession(io: IoServer, room: any, session: any, roomCode: s
   const nextQNum = session.currentQuestionNumber + 1;
 
   if (nextQNum <= questionsPerTurn) {
+    // ─── Adaptive AI Question 2 Selection (No second voting needed) ───────────
+    try {
+      // 1. Fetch previous question & answer
+      const previousSQ = await prisma.sessionQuestion.findFirst({
+        where: { sessionId: session.id, questionNumber: session.currentQuestionNumber, isSelected: true },
+        include: { question: true },
+      });
+
+      // 2. Get questions already asked in this session
+      const askedSQs = await prisma.sessionQuestion.findMany({
+        where: { sessionId: session.id },
+        select: { questionId: true },
+      });
+      const askedIds = askedSQs.map((sq: { questionId: string }) => sq.questionId);
+
+      // 3. Fetch candidate questions for this role not yet asked
+      const candidateQuestions = await prisma.question.findMany({
+        where: {
+          role: session.role,
+          approved: true,
+          id: { notIn: askedIds },
+        },
+        take: 8,
+      });
+
+      if (previousSQ?.question && candidateQuestions.length > 0) {
+        const adaptiveResult = await selectAdaptiveSecondQuestion(
+          session.id,
+          session.role,
+          previousSQ.question,
+          previousSQ.answerText || '',
+          previousSQ.averageScore,
+          candidateQuestions
+        );
+
+        // Create the session question for Question 2
+        const newSQ = await prisma.sessionQuestion.create({
+          data: {
+            sessionId: session.id,
+            questionId: adaptiveResult.selectedQuestionId,
+            questionNumber: nextQNum,
+            isVotingQuestion: false,
+            isSelected: true,
+            answerStartedAt: new Date(),
+          },
+        });
+
+        await markQuestionUsed(adaptiveResult.selectedQuestionId);
+
+        const nextQ = await prisma.question.findUnique({ where: { id: adaptiveResult.selectedQuestionId } });
+        if (nextQ) {
+          const delay = (room.answerTimeSecs ?? 180) * 1000;
+          const timerEndsAt = new Date(Date.now() + delay);
+
+          await prisma.interviewSession.update({
+            where: { id: session.id },
+            data: { phase: 'answering', currentQuestionNumber: nextQNum, timerEndsAt },
+          });
+
+          // Determine lead interviewer
+          const participants = await prisma.roomParticipant.findMany({
+            where: { roomId: room.id },
+            orderBy: { seatOrder: 'asc' },
+          });
+          const interviewers = participants.filter((p: any) => p.userId !== session.intervieweeId);
+          const leadIdx = (session.roundNumber + nextQNum - 1) % (interviewers.length || 1);
+          const leadInterviewer = interviewers[leadIdx];
+
+          // Broadcast adaptive AI decision
+          io.to(roomCode).emit('interview:adaptive_transition' as any, {
+            questionNumber: nextQNum,
+            score: adaptiveResult.score,
+            quality: adaptiveResult.quality,
+            isDeepDive: adaptiveResult.isDeepDive,
+            reason: adaptiveResult.reason,
+          });
+
+          // Broadcast question selected and start answering immediately
+          io.to(roomCode).emit('interview:question_selected', {
+            id: nextQ.id,
+            text: nextQ.text,
+            role: nextQ.role as any,
+            difficulty: nextQ.difficulty as any,
+          });
+
+          io.to(roomCode).emit('interview:answer_start', {
+            timerEndsAt: timerEndsAt.toISOString(),
+            leadInterviewerUserId: leadInterviewer?.userId ?? '',
+          });
+
+          // Schedule answer timeout
+          await timerQueue.add(
+            'answer_timeout',
+            { type: 'answer_timeout', roomCode, sessionId: session.id, sqId: newSQ.id },
+            { delay, jobId: `answer-${session.id}-${nextQNum}` }
+          );
+
+          return;
+        }
+      }
+    } catch (adaptiveErr) {
+      console.error('[advanceSession] Adaptive selection failed, falling back to standard pool:', adaptiveErr);
+    }
+
+    // Fallback if adaptive selection could not run
     const delay = (room.votingTimeSecs ?? 60) * 1000;
     const timerEndsAt = new Date(Date.now() + delay);
 

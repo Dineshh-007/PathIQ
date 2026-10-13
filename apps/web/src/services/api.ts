@@ -62,6 +62,7 @@ export const roomApi = {
 // ── AI ────────────────────────────────────────────────────────────────────────
 export const aiApi = {
   analyze: (roomId: string) => api.post('/ai/analyze', { roomId }),
+  solutions: (roomId: string) => api.post('/ai/solutions', { roomId }),
 };
 
 // ── Arena ─────────────────────────────────────────────────────────────────────

@@ -41,6 +41,7 @@ export default function InterviewPanel() {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [voteCount, setVoteCount] = useState(0);
   const [showReveal, setShowReveal] = useState(false);
+  const [adaptiveBanner, setAdaptiveBanner] = useState<{ isDeepDive: boolean; reason: string; score: number } | null>(null);
 
   const isInterviewee = session?.intervieweeId === user?.id;
 
@@ -99,6 +100,10 @@ export default function InterviewPanel() {
       }
     };
 
+    const onAdaptiveTransition = (data: any) => {
+      setAdaptiveBanner(data);
+    };
+
     s.on('interview:voting_start', onVotingStart);
     s.on('interview:vote_cast', onVoteCast);
     s.on('interview:question_selected', onQuestionSelected);
@@ -110,6 +115,7 @@ export default function InterviewPanel() {
     s.on('interview:rotation', onRotation);
     s.on('interview:session_start', onSessionStart);
     s.on('interview:reconnect_sync', onReconnectSync);
+    s.on('interview:adaptive_transition' as any, onAdaptiveTransition);
 
     return () => {
       s.off('interview:voting_start', onVotingStart);
@@ -123,6 +129,7 @@ export default function InterviewPanel() {
       s.off('interview:rotation', onRotation);
       s.off('interview:session_start', onSessionStart);
       s.off('interview:reconnect_sync', onReconnectSync);
+      s.off('interview:adaptive_transition' as any, onAdaptiveTransition);
     };
   }, [room]);
 
@@ -260,6 +267,29 @@ export default function InterviewPanel() {
                 )}
               </div>
             </div>
+
+            {adaptiveBanner && session?.questionNumber === 2 && (
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: 12,
+                marginBottom: 20,
+                background: adaptiveBanner.isDeepDive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                border: `1px solid ${adaptiveBanner.isDeepDive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <div style={{ fontSize: 24 }}>{adaptiveBanner.isDeepDive ? '🎯' : '🔄'}</div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: adaptiveBanner.isDeepDive ? '#34d399' : '#60a5fa' }}>
+                    {adaptiveBanner.isDeepDive ? `Adaptive Follow-Up (Round 1 Score: ${adaptiveBanner.score.toFixed(1)}/10)` : `Adaptive Pivot (Round 1 Score: ${adaptiveBanner.score.toFixed(1)}/10)`}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                    {adaptiveBanner.reason}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {selectedQuestion && (
               <div className="glow-border" style={{ padding: '20px 24px', borderRadius: 14, marginBottom: 24, background: 'rgba(124,58,237,0.06)' }}>

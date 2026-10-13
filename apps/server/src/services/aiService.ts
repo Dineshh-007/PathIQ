@@ -134,3 +134,118 @@ Guidelines:
   }
 }
 
+// ─── Post-Session Question Solutions with Visual Diagrams ───────────────────────
+export interface QuestionSolution {
+  questionId: string;
+  questionText: string;
+  role: string;
+  difficulty: string;
+  summary: string;
+  coreConcepts: string[];
+  idealAnswer: string;
+  diagram: string;
+  diagramCaption: string;
+}
+
+export async function generateRoomSolutions(
+  roomId: string,
+  questions: { id: string; text: string; role: string; difficulty: string }[]
+): Promise<QuestionSolution[]> {
+  if (!questions || questions.length === 0) return [];
+
+  // Fallback generation helper
+  const createFallbackSolutions = (): QuestionSolution[] => {
+    return questions.map((q) => ({
+      questionId: q.id,
+      questionText: q.text,
+      role: q.role,
+      difficulty: q.difficulty,
+      summary: `Mastering key concepts and trade-offs for: "${q.text.slice(0, 60)}..."`,
+      coreConcepts: ['Core Architecture', 'Trade-offs & Constraints', 'Best Practices'],
+      idealAnswer: `To answer "${q.text}" effectively:\n\n1. Clarify requirements and operational constraints.\n2. Outline the fundamental architecture and principles.\n3. Discuss edge-cases, error handling, and performance trade-offs.\n4. Summarize with real-world production considerations.`,
+      diagram: `graph TD
+  A["Client Input"] --> B["System Core"]
+  B --> C["Processing & Logic"]
+  C --> D["Validation & Output"]`,
+      diagramCaption: 'High-Level Execution & Architecture Flow',
+    }));
+  };
+
+  if (!isEnabled || !genAI) {
+    console.warn('[aiService] GEMINI_API_KEY not configured — using fallback solution guide');
+    return createFallbackSolutions();
+  }
+
+  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
+  const model = genAI.getGenerativeModel({ model: modelName });
+
+  const questionsList = questions
+    .map((q, i) => `Question ${i + 1} (ID: ${q.id}, Role: ${q.role}, Difficulty: ${q.difficulty}):\n"${q.text}"`)
+    .join('\n\n');
+
+  const prompt = `
+You are a Principal Software Architect and Lead Technical Interview Coach.
+For each technical interview question listed below, generate an authoritative solution guide along with an intuitive Mermaid.js diagram.
+
+Questions Asked in the Session:
+${questionsList}
+
+For EVERY question, provide:
+1. "summary": A crisp 2-sentence explanation of what interviewers are testing.
+2. "coreConcepts": Array of 3-4 key technical concepts (e.g. ["ACID guarantees", "Leader-Follower Replication"]).
+3. "idealAnswer": Comprehensive, well-structured model answer explaining how to excel at this question (use clear bullet points, trade-offs, and best practices).
+4. "diagram": A valid Mermaid.js graph (use \`graph TD\` or \`sequenceDiagram\`) representing the architecture, data flow, or lifecycle for this question. IMPORTANT: Ensure node labels only use alphanumeric characters or double quotes without nested quotes (e.g. A["Node Label"] --> B["Next Step"]). Do NOT wrap in backticks inside the JSON string.
+5. "diagramCaption": A 1-sentence caption explaining the diagram.
+
+Return your response strictly as a JSON array of objects with this exact structure:
+[
+  {
+    "questionId": "exact question ID",
+    "summary": "...",
+    "coreConcepts": ["...", "..."],
+    "idealAnswer": "...",
+    "diagram": "graph TD\\n  A[Step 1] --> B[Step 2]",
+    "diagramCaption": "..."
+  }
+]
+
+Do not include any text outside the JSON array.
+  `.trim();
+
+  try {
+    const startTime = Date.now();
+    const result = await model.generateContent(prompt);
+    const latencyMs = Date.now() - startTime;
+    const text = result.response.text().trim();
+
+    await emitTrace(prompt, text, {
+      model: modelName,
+      latencyMs,
+      sessionId: `solutions-${roomId}`,
+    }).catch(console.error);
+
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text];
+    const jsonText = jsonMatch[1] || text;
+    const parsed = JSON.parse(jsonText) as any[];
+
+    return questions.map((q) => {
+      const match = parsed.find((p) => p.questionId === q.id) || {};
+      return {
+        questionId: q.id,
+        questionText: q.text,
+        role: q.role,
+        difficulty: q.difficulty,
+        summary: match.summary || `Analysis and solution guide for: ${q.text.slice(0, 50)}...`,
+        coreConcepts: Array.isArray(match.coreConcepts) ? match.coreConcepts : ['System Design', 'Performance', 'Trade-offs'],
+        idealAnswer: match.idealAnswer || 'Focus on architectural clarity, algorithmic trade-offs, and clear communication.',
+        diagram: match.diagram || `graph TD\n  A["Input"] --> B["Process"]\n  B --> C["Output"]`,
+        diagramCaption: match.diagramCaption || 'Solution Architecture Flow',
+      };
+    });
+  } catch (err: any) {
+    console.error('[aiService] Failed to generate AI solutions, using fallback:', err);
+    return createFallbackSolutions();
+  }
+}
+
+

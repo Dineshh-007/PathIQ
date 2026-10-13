@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { aiApi } from '@/services/api';
 import type { AwardCategory } from '@peerprep/shared-types';
 
+import MermaidDiagram from '@/components/common/MermaidDiagram';
+
 const AWARD_LABELS: Record<AwardCategory, { emoji: string; label: string }> = {
   best_technical: { emoji: '💡', label: 'Best Technical Performer' },
   best_communicator: { emoji: '🗣️', label: 'Best Communicator' },
@@ -20,7 +22,10 @@ export default function ResultsPanel() {
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'details' | 'ai'>('leaderboard');
+  const [solutions, setSolutions] = useState<any[]>([]);
+  const [solutionsLoading, setSolutionsLoading] = useState(false);
+  const [solutionsError, setSolutionsError] = useState('');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'details' | 'ai' | 'solutions'>('leaderboard');
 
   const myResult = results?.participants.find((p) => p.userId === user?.id);
 
@@ -35,6 +40,20 @@ export default function ResultsPanel() {
       setAiError(err.response?.data?.error || 'AI analysis failed. Make sure your API key is configured.');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleLoadSolutions = async () => {
+    setSolutionsLoading(true);
+    setSolutionsError('');
+    try {
+      const { data } = await aiApi.solutions(results?.roomId ?? '');
+      setSolutions(data.solutions || []);
+      setActiveTab('solutions');
+    } catch (err: any) {
+      setSolutionsError(err.response?.data?.error || 'Failed to generate solution guide.');
+    } finally {
+      setSolutionsLoading(false);
     }
   };
 
@@ -93,11 +112,16 @@ export default function ResultsPanel() {
         )}
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1px solid var(--color-border)' }}>
-          {(['leaderboard', 'details', 'ai'] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: activeTab === tab ? 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(99,102,241,0.3))' : 'transparent', color: activeTab === tab ? '#a78bfa' : 'var(--color-text-muted)', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s' }}>
-              {tab === 'leaderboard' ? '🏆 Leaderboard' : tab === 'details' ? '📋 All Feedback' : '🤖 AI Coaching'}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
+          {(['leaderboard', 'details', 'ai', 'solutions'] as const).map((tab) => (
+            <button key={tab} onClick={() => {
+                setActiveTab(tab);
+                if (tab === 'solutions' && solutions.length === 0 && !solutionsLoading) {
+                  handleLoadSolutions();
+                }
+              }}
+              style={{ flex: 1, minWidth: 140, padding: '10px', borderRadius: 8, border: 'none', background: activeTab === tab ? 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(99,102,241,0.3))' : 'transparent', color: activeTab === tab ? '#a78bfa' : 'var(--color-text-muted)', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+              {tab === 'leaderboard' ? '🏆 Leaderboard' : tab === 'details' ? '📋 All Feedback' : tab === 'ai' ? '🤖 AI Coaching' : '📘 Solutions & Diagrams'}
             </button>
           ))}
         </div>
@@ -241,6 +265,122 @@ export default function ResultsPanel() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Solutions & Diagrams Tab */}
+        {activeTab === 'solutions' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="glass" style={{ padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 4 }}>📘 Official Solution Guide & Diagrams</h2>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>
+                  Master the optimal answers, architectural flows, and technical trade-offs for all questions asked in this session.
+                </p>
+              </div>
+              <button
+                className="btn-primary"
+                onClick={handleLoadSolutions}
+                disabled={solutionsLoading}
+                style={{ padding: '10px 22px', fontSize: '0.85rem' }}
+              >
+                {solutionsLoading ? 'Generating...' : '🔄 Refresh Guides'}
+              </button>
+            </div>
+
+            {solutionsLoading && (
+              <div className="glass" style={{ padding: '64px', textAlign: 'center' }}>
+                <div className="spin" style={{ width: 44, height: 44, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', margin: '0 auto 20px' }} />
+                <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: 8, color: '#c084fc' }}>Generating Architecture Diagrams & Ideal Solutions</h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>Gemini is synthesizing comprehensive solutions and Mermaid diagrams for every question...</p>
+              </div>
+            )}
+
+            {solutionsError && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '20px', textAlign: 'center', color: '#f87171' }}>
+                <p style={{ marginBottom: 12, fontSize: '0.9rem' }}>{solutionsError}</p>
+                <button className="btn-secondary" onClick={handleLoadSolutions}>Try Again</button>
+              </div>
+            )}
+
+            {!solutionsLoading && solutions.length === 0 && !solutionsError && (
+              <div className="glass" style={{ padding: '48px', textAlign: 'center' }}>
+                <div style={{ fontSize: 44, marginBottom: 16 }}>📘</div>
+                <h3 style={{ fontWeight: 800, fontSize: '1.15rem', marginBottom: 8 }}>Ready to Generate Solution Blueprint</h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem', maxWidth: 450, margin: '0 auto 24px' }}>
+                  Click below to synthesize model answers and visual architecture flowcharts for all questions asked.
+                </p>
+                <button className="btn-primary" onClick={handleLoadSolutions} style={{ padding: '12px 32px' }}>
+                  ✨ Generate Solution Guides & Diagrams
+                </button>
+              </div>
+            )}
+
+            {!solutionsLoading && solutions.map((sol, index) => (
+              <div key={sol.questionId || index} className="glass glow-border fade-in-up" style={{ padding: '28px 32px' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 260 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span className="badge badge-purple" style={{ fontSize: '0.75rem', fontWeight: 800 }}>Question {index + 1}</span>
+                      <span className="badge badge-yellow" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>{sol.difficulty || 'Medium'}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>Role: {sol.role || 'Software Engineering'}</span>
+                    </div>
+                    <h3 style={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.6, color: 'var(--color-text)' }}>
+                      {sol.questionText}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Key Concepts */}
+                {sol.coreConcepts && sol.coreConcepts.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                    {sol.coreConcepts.map((concept: string, cIdx: number) => (
+                      <span key={cIdx} className="badge badge-purple" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+                        🏷️ {concept}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary */}
+                {sol.summary && (
+                  <div style={{ padding: '14px 18px', borderRadius: 10, background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', marginBottom: 20 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a78bfa', marginBottom: 4 }}>💡 Core Concept Overview:</div>
+                    <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.6, color: 'var(--color-text-muted)' }}>
+                      {sol.summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Mermaid Diagram */}
+                {sol.diagram && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#38bdf8' }}>
+                        📊 Architecture & Concept Flowchart:
+                      </div>
+                      {sol.diagramCaption && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>{sol.diagramCaption}</span>
+                      )}
+                    </div>
+                    <MermaidDiagram chart={sol.diagram} id={sol.questionId} />
+                  </div>
+                )}
+
+                {/* Ideal Model Answer */}
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#34d399', marginBottom: 10 }}>
+                    ✓ Ideal Model Answer & Discussion Points:
+                  </div>
+                  <div style={{ background: 'var(--color-surface-2)', padding: '18px 22px', borderRadius: 12, border: '1px solid var(--color-border)' }}>
+                    <div style={{ fontSize: '0.88rem', lineHeight: 1.8, color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>
+                      {sol.idealAnswer}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
